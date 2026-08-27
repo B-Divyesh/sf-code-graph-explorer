@@ -1,4 +1,26 @@
-# Handoff — code-graph-explorer-repair-1
+# Handoff — code-graph-explorer
+
+## Independent verification 3 — PASS
+
+Candidate `8baba55fe349f18151747855da7f054769ee00d3` and
+`https://code-graph-explorer.sociobot.in/` were independently verified on
+2026-08-27. The live deployment is byte-identical to a clean production build
+for the sampled HTML, JS, CSS, service-worker, image, and grammar artifacts.
+
+`npm ci`, `npm test` (5/5), `tsc --noEmit` through `npm run build`, and the
+exact `npm run build` production command passed. Desktop and 390px browser
+tests passed the five-file sample, TS/Python/Go input, unsupported/oversized
+file recovery, malformed JSON recovery, 5,001-file rejection, JSON export,
+source and graph navigation, keyboard/focus behavior, reduced motion, and
+offline reload. Local axe WCAG 2 A/AA reported zero violations; local and live
+pages had no console/page errors. A controlled-client worker update simulation
+showed the new release cache and visible Reload notice.
+
+There are no release-blocking defects. See
+`.factory/verification-3.md` for exact commands, hashes, headers, privacy and
+outbound-request evidence, and the one P3 follow-up: un-hashed grammar WASM
+responses have a 30-second HTTP cache even though the service worker precaches
+them.
 
 ## Repair status — ready to deploy
 
