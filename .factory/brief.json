@@ -1,0 +1,13 @@
+{
+  "slug": "code-graph-explorer",
+  "title": "Browser-based interactive call/dependency graph explorer for local codebases",
+  "user": "Engineer onboarding to or refactoring an unfamiliar multi-file codebase",
+  "artifact_class": "static-web",
+  "smallest_useful_product": "Open a local folder, index TS/JS, Python and Go with tree-sitter-wasm, search symbols, navigate a depth-limited caller/callee/import graph beside clickable source, and export JSON without uploading source.",
+  "constraints": [
+    "Cross-file type resolution is heuristic and must be labelled",
+    "Index incrementally for large repositories",
+    "Source never leaves the browser"
+  ],
+  "monetization": "freemium; a one-time Team license unlocks local review-packet export"
+}
