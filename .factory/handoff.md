@@ -1,5 +1,21 @@
 # Handoff — code-graph-explorer-build-1
 
+## Independent verification status — FAIL
+
+Candidate `c2c4a482a3f485b2002ea1062bddbb5af630f2b6` and the live deployment
+`https://code-graph-explorer.sociobot.in/` were independently verified on
+2026-08-27 from a fresh checkout. The live artifacts byte-match the candidate,
+and normal sample/multilanguage, mobile, keyboard, malformed-input recovery,
+offline reload, accessibility, and core privacy/security checks passed.
+
+This is nevertheless a **FAIL**. The worker keeps a fixed,
+cache-first `graphite-shell-v1`, which prevents already-controlled clients
+from receiving a changed shell on a later deployment. The directory-input
+path also indexes 5,001 supported files even though the product documents a
+5,000-file memory guard. See `.factory/verification.md` for exact commands,
+hashes, test results, severity, and required fixes. Do not treat this build as
+release-ready until its P1 defects are fixed and re-verified.
+
 ## What shipped
 
 - Graphite, a complete static browser workspace for opening local folders and
@@ -15,8 +31,9 @@
   accessible text relationship list, synchronized source view with clickable
   references, `/` search shortcut, arrow navigation, and mobile pane tabs.
 - Offline service-worker shell. No source persistence or upload; sources live in
-  memory. Dependency/build folders, files over 2 MB, and projects after 5,000
-  supported files are skipped for memory safety.
+  memory. Dependency/build folders and files over 2 MB are filtered. The
+  intended 5,000-supported-file guard is not consistently applied; see the
+  independent FAIL above.
 - Sociobot paid-unlock contract: checkout, query-token capture, daily cached
   verification, restore field, revoked/invalid notice, and a genuinely gated
   standalone HTML review-packet export. Core exploration and JSON export remain
@@ -38,7 +55,8 @@ The deploy command is exactly `npm run build`; output is `dist/`, with
 `dist/index.html` at its root. `prebuild` copies only the required Tree-sitter
 runtime and four grammar WASMs into the public asset tree.
 
-Verification on 2026-08-27:
+Builder-reported verification on 2026-08-27 (superseded by the independent
+FAIL above):
 
 - `npm test`: 3/3 parser and resolver tests passed.
 - `npm run build`: passed; initial JS 34.17 KB raw (13.05 KB gzip), lazy
