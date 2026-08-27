@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://code-graph-explorer.sociobot.in/sitemap.xml
