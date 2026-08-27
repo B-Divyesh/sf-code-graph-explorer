@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildIndex, languageFor, validateIndex } from './parser';
+import { applyDirectoryFileLimit, exceedsDirectoryFileLimit, MAX_SUPPORTED_FILES } from './intake';
 
 describe('code indexer', () => {
   it('recognizes supported languages', () => {
@@ -23,5 +24,22 @@ describe('code indexer', () => {
   it('accepts only versioned index objects', () => {
     expect(validateIndex({ version: 1, project: 'x', files: [], symbols: [], edges: [] })).toBe(true);
     expect(validateIndex({ version: 2, project: 'x' })).toBe(false);
+  });
+
+  it('accepts exactly 5,000 directory files in deterministic path order', () => {
+    const files = Array.from({ length: MAX_SUPPORTED_FILES }, (_, number) => ({ path: `src/${String(MAX_SUPPORTED_FILES - number).padStart(5, '0')}.js` }));
+    const result = applyDirectoryFileLimit(files);
+    expect(result.exceeded).toBe(false);
+    expect(exceedsDirectoryFileLimit(MAX_SUPPORTED_FILES)).toBe(false);
+    expect(result.files).toHaveLength(MAX_SUPPORTED_FILES);
+    expect(result.files[0].path).toBe('src/00001.js');
+  });
+
+  it('rejects 5,001 directory files without truncating the selection', () => {
+    const files = Array.from({ length: MAX_SUPPORTED_FILES + 1 }, (_, number) => ({ path: `src/${String(number).padStart(5, '0')}.js` }));
+    const result = applyDirectoryFileLimit(files);
+    expect(result.exceeded).toBe(true);
+    expect(exceedsDirectoryFileLimit(MAX_SUPPORTED_FILES + 1)).toBe(true);
+    expect(result.files).toHaveLength(MAX_SUPPORTED_FILES + 1);
   });
 });

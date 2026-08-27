@@ -55,8 +55,10 @@ unique/exported name; imports resolve against normalized relative paths. Every
 uncertain edge is marked `heuristic` in the UI and JSON.
 
 Folders named `.git`, `node_modules`, `vendor`, `dist`, `build`, `.next`,
-`coverage`, or `__pycache__` are ignored. Individual files over 2 MB and projects
-beyond 5,000 supported files are skipped to protect browser memory.
+`coverage`, or `__pycache__` are ignored. Individual files over 2 MB are
+ignored. A folder with more than 5,000 eligible supported files is not indexed
+at all, with a clear local error, so Graphite never silently retains a partial
+project or exceeds its browser-memory guard.
 
 ## Privacy and deployment
 

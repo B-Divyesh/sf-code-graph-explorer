@@ -1,20 +1,24 @@
-# Handoff — code-graph-explorer-build-1
+# Handoff — code-graph-explorer-repair-1
 
-## Independent verification status — FAIL
+## Repair status — ready to deploy
 
-Candidate `c2c4a482a3f485b2002ea1062bddbb5af630f2b6` and the live deployment
-`https://code-graph-explorer.sociobot.in/` were independently verified on
-2026-08-27 from a fresh checkout. The live artifacts byte-match the candidate,
-and normal sample/multilanguage, mobile, keyboard, malformed-input recovery,
-offline reload, accessibility, and core privacy/security checks passed.
+This repair resolves both P1 findings in independent verifier commit
+`d9222eb8872116a6000f3356c8356aff55238413` while retaining the previously
+passing parsing, graph, privacy, export, and accessibility behavior.
 
-This is nevertheless a **FAIL**. The worker keeps a fixed,
-cache-first `graphite-shell-v1`, which prevents already-controlled clients
-from receiving a changed shell on a later deployment. The directory-input
-path also indexes 5,001 supported files even though the product documents a
-5,000-file memory guard. See `.factory/verification.md` for exact commands,
-hashes, test results, severity, and required fixes. Do not treat this build as
-release-ready until its P1 defects are fixed and re-verified.
+- Every folder path now applies one shared **5,000 eligible supported-file**
+  boundary: File System Access picker, `webkitdirectory` fallback, and dropped
+  directories. Exactly 5,000 files index. At 5,001, Graphite does not retain a
+  partial index and displays a fixed explanation. Directory traversal is sorted
+  for deterministic handling; drag/drop also consumes every `readEntries()`
+  batch instead of silently omitting batches.
+- `npm run build` now generates `dist/sw.js` from the complete emitted release.
+  Its `graphite-shell-<content-hash>` cache is release-versioned, its navigation
+  strategy is network-first with a cached `index.html` fallback offline, and it
+  precaches the app shell/assets. The worker script is served `no-cache`.
+  `skipWaiting` and `clientsClaim` move existing controlled clients to the new
+  worker; a visible in-app “newer shell ready” Reload action refreshes the
+  document onto the new shell.
 
 ## What shipped
 
@@ -30,10 +34,9 @@ release-ready until its P1 defects are fixed and re-verified.
 - Searchable function/class/type/module list, one- or two-hop SVG focus graph,
   accessible text relationship list, synchronized source view with clickable
   references, `/` search shortcut, arrow navigation, and mobile pane tabs.
-- Offline service-worker shell. No source persistence or upload; sources live in
-  memory. Dependency/build folders and files over 2 MB are filtered. The
-  intended 5,000-supported-file guard is not consistently applied; see the
-  independent FAIL above.
+- Offline, release-versioned service-worker shell. No source persistence or
+  upload; sources live in memory. Dependency/build folders and files over 2 MB
+  are filtered, and a 5,001-file selection is rejected before indexing.
 - Sociobot paid-unlock contract: checkout, query-token capture, daily cached
   verification, restore field, revoked/invalid notice, and a genuinely gated
   standalone HTML review-packet export. Core exploration and JSON export remain
@@ -55,22 +58,29 @@ The deploy command is exactly `npm run build`; output is `dist/`, with
 `dist/index.html` at its root. `prebuild` copies only the required Tree-sitter
 runtime and four grammar WASMs into the public asset tree.
 
-Builder-reported verification on 2026-08-27 (superseded by the independent
-FAIL above):
+Repair verification on 2026-08-27:
 
-- `npm test`: 3/3 parser and resolver tests passed.
-- `npm run build`: passed; initial JS 34.17 KB raw (13.05 KB gzip), lazy
-  Tree-sitter JS 67.15 KB raw, CSS 18.69 KB raw, hero 108 KB.
-- `/opt/fleet/lib/verify-url.sh`: HTTP 200, no console/page errors, one `<h1>`,
-  title/lang/main/alt/button labels all valid.
-- axe-core at 390×844: 0 violations on landing and loaded workspace.
-- Playwright smoke: sample indexed 5 files with Tree-sitter, mobile Source/Graph/
-  Symbols tabs worked, privacy route had one `<h1>`, and an unlocked Team session
-  downloaded `boot-review.html`.
-- Lighthouse 12.8.2 mobile: Performance 100, Accessibility 100, Best Practices
-  100, SEO 100; FCP 0.9 s, LCP 1.9 s, CLS 0, TBT 20 ms. INP is not available
-  from a synthetic no-interaction run; TBT and the interaction smoke are its
-  proxies. Raw reports were produced under ignored `.factory/evidence/`.
+- Clean `npm ci`, `npm test` and `npm run build` passed. Tests include exact
+  5,000 and 5,001 limit regressions. The built initial JS is 35.60 KB raw
+  (13.60 KB gzip) and CSS 18.97 KB raw (4.97 KB gzip), below the static budget.
+- `/opt/fleet/lib/verify-url.sh` passed locally and against the current live
+  URL: HTTP 200, no browser errors, title/lang/main/alt/button checks valid.
+- Playwright local smoke: the five-file sample stayed at 12 symbols/10 edges;
+  representative TypeScript, Python, and Go input yielded 4 accepted files,
+  8 symbols, and 2 relationships (Markdown excluded); malformed JSON retained
+  its recovery screen; 5,000 files indexed and 5,001 produced the fixed error.
+- At 390×844 all three labelled mobile panes worked; `/` focused search and
+  ArrowRight moved graph focus. axe-core WCAG 2 A/AA found 0 violations on the
+  loaded workspace.
+- Offline test: after worker control, `context.setOffline(true)` followed by a
+  reload rendered the landing shell from the generated release cache.
+  Update simulation changed the worker release, observed the new cache and
+  visible “A newer Graphite shell is ready / Reload” control in an already
+  controlled persistent browser profile.
+- Live parity check: the deployed URL correctly remains the prior verifier
+  candidate until the factory deploys this commit, so its `sw.js` hash differs
+  from this build by design. Local and live basic page checks both passed; run
+  the hash/parity check again after deployment.
 
 ## Known gaps and next steps
 
@@ -82,6 +92,9 @@ FAIL above):
   200k-LOC target on lower-memory phones.
 - File System Access is Chromium-only; Firefox/Safari use the directory input.
   Dragged directory traversal relies on the widely supported WebKit entry API.
+- The live deployment has not yet been updated with this repair; deployment is
+  owned by the factory. Its old fixed-cache worker will be replaced on the next
+  deploy by the generated release worker.
 - Team review packets are local files. Hosted team permalinks remain a future
   server-backed tier and were not implied in this v1.
 - The production billing product must be registered by the factory. Staging can

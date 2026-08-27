@@ -1,5 +1,6 @@
 import './styles.css';
 import { buildIndex, languageFor, validateIndex } from './parser';
+import { applyDirectoryFileLimit, directoryLimitMessage, exceedsDirectoryFileLimit } from './intake';
 import type { CodeIndex, CodeSymbol, FileInput, GraphEdge } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
@@ -14,6 +15,7 @@ let depth = 1;
 let activePane: 'symbols' | 'graph' | 'source' = 'graph';
 let busy = false;
 let statusMessage = '';
+let updateNotice = false;
 
 function licenseVerdict(): { valid: boolean; reason?: string; checkedAt?: number } | null {
   try { return JSON.parse(localStorage.getItem(`sb_license_verdict:${PRODUCT}`) || 'null'); } catch { return null; }
@@ -48,7 +50,7 @@ function chrome(content: string, legal = false): string {
   return `<header class="site-header">
     <a class="wordmark" href="/" data-route><span class="registration-mark" aria-hidden="true"></span>Graphite <span>/ code atlas</span></a>
     <nav aria-label="Primary"><a href="/privacy" data-route>Privacy</a><button class="text-button" data-team>${icon('lock')} Team</button>${index && !legal ? '<button class="ink-button compact" data-new>Open another</button>' : ''}</nav>
-  </header>${content}<footer class="site-footer"><span>Source stays on your machine.</span><span>Original illustration generated for Graphite.</span><span><a href="/terms" data-route>Terms</a> · <a href="/privacy" data-route>Privacy</a></span></footer>${teamDialog()}`;
+  </header>${content}<footer class="site-footer"><span>Source stays on your machine.</span><span>Original illustration generated for Graphite.</span><span><a href="/terms" data-route>Terms</a> · <a href="/privacy" data-route>Privacy</a></span></footer>${updateNotice ? '<div class="update-toast" role="status"><span>A newer Graphite shell is ready.</span><button class="paper-button compact" data-reload>Reload</button></div>' : ''}${teamDialog()}`;
 }
 
 function renderLanding(): void {
@@ -203,6 +205,7 @@ function bindCommon(): void {
   app.querySelectorAll<HTMLAnchorElement>('[data-route]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); history.pushState({}, '', link.pathname); route(); }));
   app.querySelectorAll<HTMLButtonElement>('[data-team]').forEach(button => button.addEventListener('click', () => openTeam(button)));
   app.querySelector<HTMLButtonElement>('[data-new]')?.addEventListener('click', () => { index = null; selectedId = ''; renderLanding(); });
+  app.querySelector<HTMLButtonElement>('[data-reload]')?.addEventListener('click', () => location.reload());
   const dialog = app.querySelector<HTMLDialogElement>('.team-dialog');
   dialog?.querySelector<HTMLButtonElement>('[data-dialog-close]')?.addEventListener('click', () => dialog.close());
   dialog?.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
@@ -257,25 +260,39 @@ async function openFolder(fallback?: HTMLInputElement | null): Promise<void> {
   if ('showDirectoryPicker' in window) {
     try {
       const handle = await (window as unknown as { showDirectoryPicker: () => Promise<FileSystemDirectoryHandle> }).showDirectoryPicker();
-      const files: FileInput[] = []; await walkDirectory(handle, '', files); await analyze(files, handle.name); return;
+      const files: FileInput[] = []; const exceeded = await walkDirectory(handle, '', files);
+      if (exceeded) { renderError('Folder is too large', directoryLimitMessage()); return; }
+      await analyze(files, handle.name); return;
     } catch (error) { if ((error as DOMException).name === 'AbortError') return; }
   }
   fallback?.click();
 }
 
-async function walkDirectory(handle: FileSystemDirectoryHandle, prefix: string, output: FileInput[]): Promise<void> {
-  for await (const [name, child] of handle.entries()) {
+async function walkDirectory(handle: FileSystemDirectoryHandle, prefix: string, output: FileInput[]): Promise<boolean> {
+  const entries: [string, FileSystemFileHandle | FileSystemDirectoryHandle][] = [];
+  for await (const entry of handle.entries()) entries.push(entry);
+  entries.sort(([left], [right]) => left < right ? -1 : left > right ? 1 : 0);
+  for (const [name, child] of entries) {
     if (ignoredParts.has(name) || name.startsWith('.')) continue;
     const path = prefix ? `${prefix}/${name}` : name;
-    if (child.kind === 'directory') await walkDirectory(child, path, output);
-    else if (supported.some(ext => name.toLowerCase().endsWith(ext))) { const file = await child.getFile(); if (file.size <= 2_000_000) output.push({ path, content: await file.text() }); }
-    if (output.length >= 5000) return;
+    if (child.kind === 'directory') { if (await walkDirectory(child, path, output)) return true; }
+    else if (supported.some(ext => name.toLowerCase().endsWith(ext))) {
+      const file = await child.getFile();
+      if (file.size <= 2_000_000) {
+        if (exceedsDirectoryFileLimit(output.length + 1)) return true;
+        output.push({ path, content: await file.text() });
+      }
+    }
   }
+  return false;
 }
 
 async function readFileList(list: FileList | null): Promise<void> {
-  if (!list) return; const files: FileInput[] = [];
-  for (const file of [...list]) if (languageFor(file.name) !== 'unknown' && file.size <= 2_000_000 && !file.webkitRelativePath.split('/').some(part => ignoredParts.has(part))) files.push({ path: file.webkitRelativePath || file.name, content: await file.text() });
+  if (!list) return;
+  const candidates = applyDirectoryFileLimit([...list].filter(file => languageFor(file.name) !== 'unknown' && file.size <= 2_000_000 && !file.webkitRelativePath.split('/').some(part => ignoredParts.has(part))).map(file => ({ file, path: file.webkitRelativePath || file.name })));
+  if (candidates.exceeded) { renderError('Folder is too large', directoryLimitMessage()); return; }
+  const files: FileInput[] = [];
+  for (const candidate of candidates.files) files.push({ path: candidate.path, content: await candidate.file.text() });
   await analyze(files, files[0]?.path.split('/')[0] || 'Local project');
 }
 
@@ -283,12 +300,29 @@ async function readDroppedItems(data: DataTransfer | null): Promise<void> {
   if (!data) return;
   const files: FileInput[] = [];
   const entries = [...data.items].map(item => item.webkitGetAsEntry?.()).filter(Boolean) as FileSystemEntry[];
+  let exceeded = false;
   const walk = async (entry: FileSystemEntry, prefix = ''): Promise<void> => {
+    if (exceeded) return;
     if (ignoredParts.has(entry.name) || entry.name.startsWith('.')) return;
-    if (entry.isFile) await new Promise<void>(resolve => (entry as FileSystemFileEntry).file(async file => { if (languageFor(file.name) !== 'unknown' && file.size <= 2_000_000) files.push({ path: `${prefix}${file.name}`, content: await file.text() }); resolve(); }));
-    else { const reader = (entry as FileSystemDirectoryEntry).createReader(); const children = await new Promise<FileSystemEntry[]>(resolve => reader.readEntries(resolve)); for (const child of children) await walk(child, `${prefix}${entry.name}/`); }
+    if (entry.isFile) await new Promise<void>(resolve => (entry as FileSystemFileEntry).file(async file => {
+      if (languageFor(file.name) !== 'unknown' && file.size <= 2_000_000) {
+        if (exceedsDirectoryFileLimit(files.length + 1)) exceeded = true;
+        else files.push({ path: `${prefix}${file.name}`, content: await file.text() });
+      }
+      resolve();
+    }));
+    else {
+      const reader = (entry as FileSystemDirectoryEntry).createReader(); const children: FileSystemEntry[] = [];
+      let batch: FileSystemEntry[];
+      do { batch = await new Promise<FileSystemEntry[]>(resolve => reader.readEntries(resolve)); children.push(...batch); } while (batch.length);
+      children.sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
+      for (const child of children) { await walk(child, `${prefix}${entry.name}/`); if (exceeded) return; }
+    }
   };
-  for (const entry of entries) await walk(entry); await analyze(files, entries[0]?.name || 'Dropped project');
+  entries.sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
+  for (const entry of entries) { await walk(entry); if (exceeded) break; }
+  if (exceeded) { renderError('Folder is too large', directoryLimitMessage()); return; }
+  await analyze(files, entries[0]?.name || 'Dropped project');
 }
 
 async function analyze(files: FileInput[], project: string): Promise<void> {
@@ -340,7 +374,24 @@ window.addEventListener('keydown', event => { if (event.key === '/' && index && 
 window.addEventListener('online', () => index && renderWorkspace());
 window.addEventListener('offline', () => index && renderWorkspace());
 processLicense(); route();
-if ('serviceWorker' in navigator && import.meta.env.PROD) window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => undefined));
+if ('serviceWorker' in navigator && import.meta.env.PROD) window.addEventListener('load', () => {
+  let hadController = Boolean(navigator.serviceWorker.controller);
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) { hadController = true; return; }
+    updateNotice = true; route();
+  });
+  navigator.serviceWorker.register('/sw.js', { updateViaCache: 'none' }).then(registration => {
+    registration.addEventListener('updatefound', () => {
+      const worker = registration.installing;
+      worker?.addEventListener('statechange', () => {
+        if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+          updateNotice = true; route();
+          worker.postMessage({ type: 'SKIP_WAITING' });
+        }
+      });
+    });
+  }).catch(() => undefined);
+});
 
 declare global {
   interface FileSystemDirectoryHandle { entries(): AsyncIterableIterator<[string, FileSystemFileHandle | FileSystemDirectoryHandle]> }
