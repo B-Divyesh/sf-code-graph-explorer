@@ -21,6 +21,32 @@ describe('code indexer', () => {
     expect(index.edges.some(edge => edge.kind === 'import')).toBe(true);
   });
 
+  it('@claim:exact-local-resolution prefers the same-file definition', async () => {
+    const index = await buildIndex([
+      { path: 'src/main.ts', content: 'function format() { return 1 }\nexport function run() { return format() }' },
+      { path: 'src/other.ts', content: 'export function format() { return 2 }' },
+    ], 'local-resolution');
+    const run = index.symbols.find(symbol => symbol.name === 'run')!;
+    const localFormat = index.symbols.find(symbol => symbol.name === 'format' && symbol.file === 'src/main.ts')!;
+    expect(index.edges).toContainEqual(expect.objectContaining({ from: run.id, to: localFormat.id, kind: 'call', confidence: 'exact' }));
+  });
+
+  it('@claim:cross-file-resolution resolves named imports and unique names but rejects ambiguous names', async () => {
+    const index = await buildIndex([
+      { path: 'src/main.ts', content: "import { chosen } from './a'\nexport function run() { chosen(); unique(); conflict() }" },
+      { path: 'src/a.ts', content: 'export function chosen() { return 1 }\nexport function conflict() { return 1 }' },
+      { path: 'src/b.ts', content: 'export function chosen() { return 2 }\nexport function conflict() { return 2 }' },
+      { path: 'src/unique.ts', content: 'export function unique() { return 3 }' },
+    ], 'cross-file-resolution');
+    const run = index.symbols.find(symbol => symbol.name === 'run')!;
+    const targets = index.edges.filter(edge => edge.kind === 'call' && edge.from === run.id).map(edge => index.symbols.find(symbol => symbol.id === edge.to)!);
+    expect(targets).toEqual(expect.arrayContaining([
+      expect.objectContaining({ name: 'chosen', file: 'src/a.ts' }),
+      expect.objectContaining({ name: 'unique', file: 'src/unique.ts' }),
+    ]));
+    expect(targets.some(symbol => symbol.name === 'conflict')).toBe(false);
+  });
+
   it('accepts only versioned index objects', () => {
     expect(validateIndex({ version: 1, project: 'x', files: [], symbols: [], edges: [] })).toBe(true);
     expect(validateIndex({ version: 2, project: 'x' })).toBe(false);

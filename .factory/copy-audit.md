@@ -5,7 +5,7 @@ words and no banned marketing word appears.
 
 | Copy | Words |
 | --- | ---: |
-| Local code graph / v1.1.0 | 5 |
+| Local code graph / v1.2.0 | 5 |
 | Trace calls through an unfamiliar codebase. | 6 |
 | For engineers onboarding, debugging, or refactoring, see calls, imports, and source in one local workspace. | 15 |
 | Try it with sample data | 5 |
@@ -13,7 +13,8 @@ words and no banned marketing word appears.
 | See a five-file server codebase already mapped. | 8 |
 | Your source stays in this browser. | 6 |
 | The demo opens offline after your first visit. | 8 |
-| Local graphs and JSON export are free. | 7 |
+| Local graphs are free. | 4 |
+| Team review export costs $24 once. | 6 |
 | A codebase shown as linked functions and imports. | 8 |
 | Open your codebase | 3 |
 | Graphite reads selected files in browser memory. | 7 |
@@ -32,9 +33,29 @@ words and no banned marketing word appears.
 | Save the code graph as a local JSON file. | 9 |
 | Know what the graph cannot prove | 6 |
 | Cross-file matches are estimates and carry a visible label. | 9 |
-| Dynamic calls, reflection, generated code, and complex types can be missed. | 11 |
+| Dynamic calls can be absent from the graph. | 8 |
 | No analytics, accounts, hosted source index, external fonts, or third-party scripts run in the free workflow. | 16 |
 | Read the privacy details or read the terms. | 8 |
+| Send a review packet, not raw graph data | 8 |
+| Export the focused symbol, source location, and visible relationships as one standalone HTML file. | 14 |
+| One-time Team license for one user. | 6 |
+| View Team export | 3 |
+| Local exploration, accessibility features, and Graphite index export stay free. | 10 |
+| Trace calls through a local codebase. | 6 |
+| Original generated illustration. | 3 |
+
+## Team dialog copy
+
+| Copy | Words |
+| --- | ---: |
+| Share the path you traced | 5 |
+| Team adds a standalone HTML packet for the focused symbol, source location, and visible relationships. | 14 |
+| One-time purchase for one user | 5 |
+| Buy Team at checkout | 4 |
+| Have a license? Paste it here | 6 |
+| Verify license | 2 |
+| Sociobot handles checkout. | 3 |
+| Dodo is the merchant of record and handles refunds. | 9 |
 
 ## Terminology
 
@@ -44,5 +65,6 @@ words and no banned marketing word appears.
 | Browser selection action | folder |
 | Relationship visualization | code graph |
 | Portable JSON file | Graphite index |
+| Shareable HTML file | review packet |
 | Isolated try-out | demo |
 | Bundled demo content | sample data |

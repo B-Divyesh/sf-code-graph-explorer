@@ -9,5 +9,7 @@
 - Reset: **Reset demo** rebuilds the five original files and selects `boot`.
 - Exit: **Start for real** discards the in-memory demo and opens the real folder
   intake.
+- Review packet: **Preview** exports a sample-only HTML packet. It never reads
+  a saved Team license and does not unlock paid export for real codebases.
 - Offline: after one online visit installs the service worker, the direct demo
   URL reloads offline and rebuilds the same bundled seed.

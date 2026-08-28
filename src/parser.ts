@@ -138,7 +138,12 @@ export async function buildIndex(inputs: FileInput[], project = 'Local project',
   for (const call of calls) {
     const owner = symbols.find(item => item.id === call.from);
     const options = byName.get(call.name) || [];
-    const target = options.find(item => item.file === owner?.file) || (options.length === 1 ? options[0] : options.find(item => item.exported));
+    const localTarget = options.find(item => item.file === owner?.file);
+    const ownerModule = modules.find(module => module.file === owner?.file);
+    const namedImport = imports.find(item => item.from === ownerModule?.id && item.names.includes(call.name));
+    const importedModule = namedImport ? resolveImport(owner?.file || '', namedImport.specifier, modules) : undefined;
+    const importedTarget = importedModule ? options.find(item => item.file === importedModule.file) : undefined;
+    const target = localTarget || importedTarget || (options.length === 1 ? options[0] : undefined);
     if (target) edges.push({ id: `call:${call.from}:${target.id}:${call.line}`, from: call.from, to: target.id, kind: 'call', line: call.line, confidence: target.file === owner?.file ? 'exact' : 'heuristic' });
   }
   for (const item of imports) {

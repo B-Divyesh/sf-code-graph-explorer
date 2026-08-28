@@ -5,7 +5,9 @@ import type { CodeIndex, CodeSymbol, FileInput, GraphEdge } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const SITE = 'https://code-graph-explorer.sociobot.in';
-const BUILD_ID = '1.1.1';
+const BILLING_BASE = 'https://api.sociobot.in/api/v1';
+const PRODUCT = 'code-graph-explorer';
+const BUILD_ID = '1.2.0';
 const supported = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.py', '.go'];
 const ignoredParts = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'vendor', '__pycache__', 'coverage']);
 let index: CodeIndex | null = null;
@@ -19,6 +21,17 @@ let updateNotice = false;
 let demoMode = false;
 let routeShouldFocus = false;
 let demoStarting = false;
+let licenseMessage = '';
+
+type LicenseVerdict = { valid: boolean; reason?: string; expires_at?: string | null; checkedAt?: number };
+
+function licenseVerdict(): LicenseVerdict | null {
+  if (demoMode) return null;
+  try { return JSON.parse(localStorage.getItem(`sb_license_verdict:${PRODUCT}`) || 'null') as LicenseVerdict | null; }
+  catch { return null; }
+}
+
+function teamUnlocked(): boolean { return !demoMode && Boolean(licenseVerdict()?.valid); }
 
 const demoFiles: FileInput[] = [
   { path: 'src/main.ts', content: `import { createServer } from './server'\nimport { loadConfig } from './config'\n\nexport async function boot() {\n  const config = loadConfig()\n  const server = createServer(config)\n  return server.start()\n}\n\nboot()` },
@@ -76,8 +89,8 @@ function navigate(href: string): void {
 function chrome(content: string): string {
   return `<header class="site-header">
     <a class="wordmark" href="/" data-route><span class="registration-mark" aria-hidden="true"></span>Graphite <span>/ code graph</span></a>
-    <nav aria-label="Primary"><a href="/?demo=1" data-route>Demo</a><a href="/privacy" data-route>Privacy</a>${index && !demoMode ? '<button class="ink-button compact" data-new>Open another codebase</button>' : ''}</nav>
-  </header>${demoMode ? '<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><span><button data-reset-demo>Reset demo</button><button data-start-real>Start for real</button></span></aside>' : ''}${content}<footer class="site-footer"><span>Trace calls through a local codebase.</span><span>Original generated illustration.</span><span><a href="/privacy" data-route>Privacy</a> · <a href="/terms" data-route>Terms</a> · Built by Param Factory · v${BUILD_ID}</span></footer><div class="sr-only" aria-live="polite" data-route-status></div>${updateNotice ? '<div class="update-toast" role="status"><span>A newer Graphite shell is ready.</span><button class="paper-button compact" data-reload>Reload</button></div>' : ''}`;
+    <nav aria-label="Primary"><a href="/?demo=1" data-route>Demo</a><a href="/privacy" data-route>Privacy</a>${!demoMode ? `<button class="text-button" data-team>${icon('lock')} View Team export</button>` : ''}${index && !demoMode ? '<button class="ink-button compact" data-new>Open another codebase</button>' : ''}</nav>
+  </header>${demoMode ? '<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><span><button data-reset-demo>Reset demo</button><button data-start-real>Start for real</button></span></aside>' : ''}${content}<footer class="site-footer"><span>Trace calls through a local codebase.</span><span>Original generated illustration.</span><span><a href="/privacy" data-route>Privacy</a> · <a href="/terms" data-route>Terms</a> · Built by Param Factory · v${BUILD_ID}</span></footer><div class="sr-only" aria-live="polite" data-route-status></div>${!demoMode ? teamDialog() : ''}${updateNotice ? '<div class="update-toast" role="status"><span>A newer Graphite shell is ready.</span><button class="paper-button compact" data-reload>Reload</button></div>' : ''}`;
 }
 
 function renderLanding(): void {
@@ -93,7 +106,7 @@ function renderLanding(): void {
           <button class="paper-button" data-open>${icon('folder')} Open a folder</button>
         </div>
         <p class="action-note">See a five-file server codebase already mapped.</p>
-        <ul class="hero-facts"><li>Your source stays in this browser.</li><li>The demo opens offline after your first visit.</li><li>Local graphs and JSON export are free.</li></ul>
+        <ul class="hero-facts"><li>Your source stays in this browser.</li><li>The demo opens offline after your first visit.</li><li>Local graphs are free. Team review export costs $24 once.</li></ul>
       </div>
       <figure class="hero-figure">
         <img src="/assets/code-cartography.webp" alt="Abstract halftone map of paper source files connected by red, blue, and black graph nodes" width="1200" height="800" fetchpriority="high" decoding="async">
@@ -111,7 +124,8 @@ function renderLanding(): void {
     </section>
     <section class="live-preview" aria-labelledby="preview-title"><div><p class="section-no">02 / Working view</p><h2 id="preview-title">Follow one function at a time</h2><p>Select a function to see callers, callees, imports, and its source location together.</p></div><div class="preview-map" aria-label="Preview showing boot linked to createServer, loadConfig, and start"><span class="preview-node selected">boot()</span><span class="preview-node one">createServer()</span><span class="preview-node two">loadConfig()</span><span class="preview-node three">start()</span><i class="preview-line a"></i><i class="preview-line b"></i><i class="preview-line c"></i></div></section>
     <section class="how-it-works" aria-labelledby="steps-title"><p class="section-no">03 / Method</p><h2 id="steps-title">How Graphite maps a codebase</h2><ol><li><strong>Open a folder.</strong><span>Choose supported source files from your device.</span></li><li><strong>Select a function.</strong><span>Move through linked calls, imports, and source.</span></li><li><strong>Export the index.</strong><span>Save the code graph as a local JSON file.</span></li></ol></section>
-    <section class="limits" aria-labelledby="limits-title"><div><p class="section-no">04 / Boundaries</p><h2 id="limits-title">Know what the graph cannot prove</h2></div><div><p>Cross-file matches are estimates and carry a visible label. Dynamic calls, reflection, generated code, and complex types can be missed.</p><p>No analytics, accounts, hosted source index, external fonts, or third-party scripts run in the free workflow.</p><p><a href="/privacy" data-route>Read the privacy details</a> or <a href="/terms" data-route>read the terms</a>.</p></div></section>
+    <section class="limits" aria-labelledby="limits-title"><div><p class="section-no">04 / Boundaries</p><h2 id="limits-title">Know what the graph cannot prove</h2></div><div><p>Cross-file matches are estimates and carry a visible label. Dynamic calls can be absent from the graph.</p><p>No analytics, accounts, hosted source index, external fonts, or third-party scripts run in the free workflow.</p><p><a href="/privacy" data-route>Read the privacy details</a> or <a href="/terms" data-route>read the terms</a>.</p></div></section>
+    <section class="team-tier" aria-labelledby="team-tier-title"><div><p class="section-no">05 / Team export</p><h2 id="team-tier-title">Send a review packet, not raw graph data</h2><p>Export the focused symbol, source location, and visible relationships as one standalone HTML file.</p></div><div class="team-price"><strong>$24</strong><span>One-time Team license for one user.</span><button class="ink-button" data-team>View Team export</button><small>Local exploration, accessibility features, and Graphite index export stay free.</small></div></section>
     <div class="sr-only" aria-live="polite">${esc(statusMessage)}</div>
   </main>`);
   bindCommon();
@@ -192,8 +206,13 @@ function renderWorkspace(): void {
   if (!selected) return renderError('No symbols found', 'Graphite read the files, but could not find supported definitions. Try a codebase containing TypeScript, JavaScript, Python, or Go.');
   const visibleSymbols = index.symbols.filter(symbol => (`${symbol.name} ${symbol.file}`).toLowerCase().includes(search.toLowerCase())).slice(0, 500);
   const list = visibleSymbols.map(symbol => `<li><button class="symbol-row ${symbol.id === selectedId ? 'active' : ''}" data-symbol="${esc(symbol.id)}"><span class="kind-stamp">${symbol.kind.slice(0, 2).toUpperCase()}</span><span><strong>${esc(symbol.name)}</strong><small>${esc(shortPath(symbol.file))}:${symbol.line}</small></span></button></li>`).join('') || '<li class="empty-list">No symbols match. Try a file name.</li>';
+  const reviewAction = demoMode
+    ? `<button class="paper-button compact" data-review aria-label="Preview review packet from sample data">${icon('export')} <span class="desktop-action">Preview review packet</span><span class="mobile-action">Preview</span></button>`
+    : teamUnlocked()
+      ? `<button class="paper-button compact" data-review>${icon('export')} <span class="desktop-action">Export review packet</span><span class="mobile-action">Packet</span></button>`
+      : `<button class="paper-button compact" data-team>${icon('lock')} <span class="desktop-action">View Team export</span><span class="mobile-action">Team</span></button>`;
   app.innerHTML = chrome(`<main id="main" class="workspace">
-    <div class="project-bar"><div><span class="indexed-dot" aria-hidden="true"></span><strong>${esc(index.project)}</strong><span>${index.stats.files} files · ${index.stats.symbols} symbols · ${index.stats.edges} relationships</span></div><div><span class="heuristic-badge" title="Cross-file name matching may include false relationships">≈ Estimated cross-file matches</span><button class="paper-button compact" data-export>${icon('export')} Export Graphite index</button></div></div>
+    <div class="project-bar"><div><span class="indexed-dot" aria-hidden="true"></span><strong>${esc(index.project)}</strong><span>${index.stats.files} files · ${index.stats.symbols} symbols · ${index.stats.edges} relationships</span></div><div><span class="heuristic-badge" title="Cross-file name matching may include false relationships">≈ Estimated cross-file matches</span>${reviewAction}<button class="paper-button compact" data-export>${icon('export')} <span class="desktop-action">Export Graphite index</span><span class="mobile-action">Index</span></button></div></div>
     <div class="mobile-tabs" role="tablist" aria-label="Workspace panes"><button role="tab" aria-selected="${activePane === 'symbols'}" data-pane="symbols">Symbols</button><button role="tab" aria-selected="${activePane === 'graph'}" data-pane="graph">Graph</button><button role="tab" aria-selected="${activePane === 'source'}" data-pane="source">Source</button></div>
     <div class="work-grid" data-active-pane="${activePane}">
       <aside class="symbol-pane" aria-label="Symbol index"><div class="pane-head"><p class="section-no">Symbols / ${visibleSymbols.length}</p><label class="search-box">${icon('search')}<span class="sr-only">Search symbols</span><input data-search type="search" value="${esc(search)}" placeholder="Function, class, or file" autocomplete="off"><kbd>/</kbd></label></div><ul class="symbol-list">${list}</ul></aside>
@@ -208,6 +227,14 @@ function renderWorkspace(): void {
     const source = line?.closest<HTMLElement>('.source-code');
     if (line && source) source.scrollTop = Math.max(0, line.offsetTop - source.clientHeight / 2);
   });
+  if (activePane === 'graph' && innerWidth <= 760) requestAnimationFrame(() => {
+    const canvas = app.querySelector<HTMLElement>('.graph-canvas');
+    const selectedNode = app.querySelector<SVGGElement>('.graph-node.selected');
+    if (!canvas || !selectedNode) return;
+    const nodeBox = selectedNode.getBoundingClientRect();
+    const canvasBox = canvas.getBoundingClientRect();
+    canvas.scrollLeft += nodeBox.left + nodeBox.width / 2 - (canvasBox.left + canvasBox.width / 2);
+  });
   finishRoute();
 }
 
@@ -215,14 +242,16 @@ function legalPage(kind: 'privacy' | 'terms'): void {
   const privacy = kind === 'privacy';
   setMeta(`${privacy ? 'Privacy' : 'Terms'} — Graphite`, privacy ? 'How Graphite handles source files, browser storage, and network requests.' : 'Terms for using the local Graphite code graph explorer.', `/${kind}`);
   app.innerHTML = chrome(`<main id="main" class="legal-page"><a href="/" data-route class="back-link">← Back to Graphite</a><p class="eyebrow">Policy / effective 28 August 2026</p><h1>${privacy ? 'How Graphite handles your data' : 'Terms for using Graphite'}</h1>${privacy ? `
-    <h2>Your source code</h2><p>Graphite reads selected files in browser memory. It does not upload source, file names, indexes, or searches. Closing or reloading the tab clears the active index unless you export it.</p>
+    <h2>Your source code</h2><p>Graphite reads selected files in browser memory. It does not upload source, file names, indexes, or searches.</p>
     <h2>Demo data</h2><p>The demo uses bundled sample files in memory. It does not read or write production storage. Reset demo restores the original five files and selected function.</p>
     <h2>Offline storage</h2><p>The service worker stores the app files needed for offline use. It does not store an opened codebase. Clear site data in your browser to remove the offline files.</p>
-    <h2>Network requests</h2><p>The free workflow uses no analytics, advertising, hosted source index, external fonts, or third-party scripts.</p>
+    <h2>Team license</h2><p>If you buy or restore Team, Graphite stores the license and its last verdict in localStorage. It sends only that license to Sociobot for verification. Demo mode never reads or writes these keys.</p>
+    <h2>Network requests</h2><p>The free workflow uses no analytics, advertising, hosted source index, external fonts, or third-party scripts. Team checkout and license checks use the Sociobot billing API. Dodo is the merchant of record.</p>
     <h2>Your choices</h2><p>Use the local explorer without an account. Select only codebases you are allowed to inspect. Questions: <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a>.</p>` : `
     <h2>Use</h2><p>Graphite is provided under the MIT License. You may use it to inspect code you own or are authorized to access. Do not use it to violate law or another party’s rights.</p>
-    <h2>Accuracy</h2><p>Cross-file relationships are estimates. Dynamic calls, aliases, reflection, generated code, and complex types can be missed or misidentified. Check the source before changing code.</p>
-    <h2>Free access</h2><p>Local exploration, accessibility features, and Graphite index export are free. No paid purchase is offered in this release.</p>
+    <h2>Accuracy</h2><p>Cross-file relationships are estimates. Dynamic calls can be absent from the graph. Check the source before changing code.</p>
+    <h2>Free access</h2><p>Local exploration, accessibility features, and Graphite index export are free.</p>
+    <h2>Team purchase</h2><p>Team costs $24 once for one user. It adds standalone local HTML review-packet export. Sociobot handles checkout, with Dodo as merchant of record. Refunds are handled there and revoke the license.</p>
     <h2>Warranty</h2><p>The software is provided “as is,” without warranty. To the extent permitted by law, the authors are not liable for losses arising from its use.</p>`}</main>`);
   bindCommon();
   finishRoute();
@@ -234,12 +263,89 @@ function renderError(title: string, message: string): void {
   bindCommon(); bindLanding(); finishRoute();
 }
 
+function teamDialog(): string {
+  const token = demoMode ? '' : localStorage.getItem(`sb_license:${PRODUCT}`) || '';
+  const verdict = licenseVerdict();
+  const unlocked = Boolean(verdict?.valid);
+  const stateCopy = unlocked
+    ? 'This browser can export standalone review packets from real codebases.'
+    : 'Team adds a standalone HTML packet for the focused symbol, source location, and visible relationships.';
+  return `<dialog class="team-dialog" aria-labelledby="team-title"><button class="dialog-close" data-dialog-close aria-label="Close Team export dialog">${icon('close')}</button><p class="eyebrow">Team review export</p><h2 id="team-title">${unlocked ? 'Team is active' : 'Share the path you traced'}</h2><p>${stateCopy}</p>${verdict && !verdict.valid ? '<p class="license-notice">This license is not active. Paste another license or buy Team.</p>' : ''}<div class="price"><strong>$24</strong><span>One-time purchase<br>for one user</span></div><a class="ink-button link-button" href="${BILLING_BASE}/products/${PRODUCT}/checkout">Buy Team at checkout <span aria-hidden="true">↗</span></a><form data-license-form><label for="license">Have a license? Paste it here</label><div><input id="license" name="license" value="${esc(token)}" autocomplete="off" spellcheck="false"><button class="paper-button" type="submit">Verify license</button></div><p data-license-status aria-live="polite">${esc(licenseMessage)}</p></form>${token ? '<button class="text-button remove-license" data-remove-license>Remove saved license</button>' : ''}<small>Sociobot handles checkout. Dodo is the merchant of record and handles refunds. <a href="/privacy" data-route>Privacy</a> · <a href="/terms" data-route>Terms</a></small></dialog>`;
+}
+
+function openTeam(opener: HTMLElement): void {
+  const dialog = app.querySelector<HTMLDialogElement>('.team-dialog');
+  if (!dialog) return;
+  dialog.showModal();
+  dialog.querySelector<HTMLButtonElement>('[data-dialog-close]')?.focus();
+  dialog.addEventListener('close', () => opener.focus(), { once: true });
+}
+
+async function verifyLicense(token: string): Promise<LicenseVerdict> {
+  try {
+    const response = await fetch(`${BILLING_BASE}/products/${PRODUCT}/verify?license=${encodeURIComponent(token)}`);
+    const verdict = await response.json() as LicenseVerdict;
+    const stored = { ...verdict, checkedAt: Date.now() };
+    localStorage.setItem(`sb_license_verdict:${PRODUCT}`, JSON.stringify(stored));
+    return stored;
+  } catch {
+    return licenseVerdict() || { valid: false, reason: 'offline' };
+  }
+}
+
+async function processLicense(): Promise<void> {
+  if (demoMode) return;
+  const url = new URL(location.href);
+  const incoming = url.searchParams.get('license');
+  if (incoming) {
+    localStorage.setItem(`sb_license:${PRODUCT}`, incoming);
+    url.searchParams.delete('license');
+    history.replaceState({}, '', `${url.pathname}${url.search}${url.hash}`);
+    const verdict = await verifyLicense(incoming);
+    licenseMessage = verdict.valid ? 'License verified. Team export is active.' : `License not active (${(verdict.reason || 'invalid').replaceAll('_', ' ')}).`;
+    route();
+    const opener = app.querySelector<HTMLElement>('[data-team]');
+    if (opener) openTeam(opener);
+    return;
+  }
+  const token = localStorage.getItem(`sb_license:${PRODUCT}`);
+  const checkedAt = licenseVerdict()?.checkedAt || 0;
+  if (token && Date.now() - checkedAt > 86_400_000) {
+    const verdict = await verifyLicense(token);
+    if (!verdict.valid) { licenseMessage = 'License no longer active.'; route(); }
+  }
+}
+
 function bindCommon(): void {
   app.querySelectorAll<HTMLAnchorElement>('[data-route]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(`${link.pathname}${link.search}`); }));
   app.querySelector<HTMLButtonElement>('[data-new]')?.addEventListener('click', () => { index = null; selectedId = ''; navigate('/'); });
   app.querySelector<HTMLButtonElement>('[data-reset-demo]')?.addEventListener('click', () => resetDemo(true));
   app.querySelector<HTMLButtonElement>('[data-start-real]')?.addEventListener('click', () => { demoMode = false; index = null; selectedId = ''; search = ''; activePane = 'graph'; navigate('/'); });
   app.querySelector<HTMLButtonElement>('[data-reload]')?.addEventListener('click', () => location.reload());
+  app.querySelectorAll<HTMLButtonElement>('[data-team]').forEach(button => button.addEventListener('click', () => openTeam(button)));
+  const dialog = app.querySelector<HTMLDialogElement>('.team-dialog');
+  dialog?.querySelector<HTMLButtonElement>('[data-dialog-close]')?.addEventListener('click', () => dialog.close());
+  dialog?.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
+  dialog?.querySelector<HTMLButtonElement>('[data-remove-license]')?.addEventListener('click', () => {
+    localStorage.removeItem(`sb_license:${PRODUCT}`);
+    localStorage.removeItem(`sb_license_verdict:${PRODUCT}`);
+    licenseMessage = 'Saved license removed.';
+    dialog.close(); route();
+  });
+  dialog?.querySelector<HTMLFormElement>('[data-license-form]')?.addEventListener('submit', async event => {
+    event.preventDefault();
+    const form = event.currentTarget as HTMLFormElement;
+    const token = new FormData(form).get('license')?.toString().trim() || '';
+    const output = form.querySelector<HTMLElement>('[data-license-status]')!;
+    if (!token) { output.textContent = 'Paste a license token first.'; return; }
+    localStorage.setItem(`sb_license:${PRODUCT}`, token);
+    output.textContent = 'Verifying license…';
+    const verdict = await verifyLicense(token);
+    licenseMessage = verdict.valid ? 'License verified. Team export is active.' : verdict.reason === 'offline' ? 'Could not verify while offline. The free workspace still works.' : `License not active (${(verdict.reason || 'invalid').replaceAll('_', ' ')}).`;
+    dialog.close(); route();
+    const opener = app.querySelector<HTMLElement>('[data-team]');
+    if (opener) openTeam(opener);
+  });
 }
 
 function bindLanding(): void {
@@ -269,6 +375,7 @@ function bindWorkspace(): void {
   searchInput?.addEventListener('input', () => { search = searchInput.value; renderWorkspace(); app.querySelector<HTMLInputElement>('[data-search]')?.focus(); });
   app.querySelector<HTMLSelectElement>('[data-depth]')?.addEventListener('change', event => { depth = Number((event.target as HTMLSelectElement).value); renderWorkspace(); });
   app.querySelector<HTMLButtonElement>('[data-export]')?.addEventListener('click', exportIndex);
+  app.querySelector<HTMLButtonElement>('[data-review]')?.addEventListener('click', exportReviewPacket);
   const tabs = [...app.querySelectorAll<HTMLButtonElement>('[data-pane]')];
   tabs.forEach(button => {
     button.addEventListener('click', () => { activePane = button.dataset.pane as typeof activePane; renderWorkspace(); });
@@ -373,6 +480,28 @@ function exportIndex(): void {
   if (!index) return; const blob = new Blob([JSON.stringify(index, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${index.project.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'code'}-graph.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function exportReviewPacket(): void {
+  if (!index || (!demoMode && !teamUnlocked())) return;
+  const symbol = index.symbols.find(item => item.id === selectedId);
+  if (!symbol) return;
+  const file = index.files.find(item => item.path === symbol.file);
+  const excerpt = file?.content.split('\n').slice(Math.max(0, symbol.line - 2), Math.min(file.lines, symbol.endLine + 1)).join('\n') || 'Source was not included in this index.';
+  const { edges } = relationData();
+  const rows = edges.map(edge => {
+    const from = index!.symbols.find(item => item.id === edge.from)!;
+    const to = index!.symbols.find(item => item.id === edge.to)!;
+    return `<tr><td>${esc(edge.kind)}</td><td>${esc(from.name)}</td><td aria-label="to">→</td><td>${esc(to.name)}</td><td>${esc(edge.confidence)}</td></tr>`;
+  }).join('');
+  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(symbol.name)} review packet</title><style>body{max-width:900px;margin:48px auto;padding:0 24px;background:#f2eedf;color:#171713;font:16px/1.5 Arial,sans-serif}h1{font-size:48px;text-transform:uppercase;border-bottom:3px solid}code,pre,table{font-family:monospace}pre{overflow:auto;padding:16px;border:2px solid;background:#fffdf5}table{width:100%;border-collapse:collapse}th,td{padding:10px;border:1px solid;text-align:left}.note{border-left:6px solid #d53a24;padding:12px;background:#fffdf5}</style></head><body><p>GRAPHITE / REVIEW PACKET</p><h1>${esc(symbol.name)}</h1><p><strong>${esc(symbol.kind)}</strong> · <code>${esc(symbol.file)}:${symbol.line}</code></p><p class="note">Cross-file relationships are estimates. Check each relationship against the source before changing code.</p><h2>Source excerpt</h2><pre><code>${esc(excerpt)}</code></pre><h2>Visible relationships</h2><table><thead><tr><th>Kind</th><th>From</th><th></th><th>To</th><th>Confidence</th></tr></thead><tbody>${rows || '<tr><td colspan="5">No visible relationships.</td></tr>'}</tbody></table><p>Generated locally by Graphite on ${new Date().toLocaleString()}.</p></body></html>`;
+  const blob = new Blob([html], { type: 'text/html' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${symbol.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-review.html`;
+  link.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 async function resetDemo(focusReset = false): Promise<void> {
   if (demoStarting) return;
   demoStarting = true;
@@ -405,10 +534,16 @@ function route(): void {
 }
 
 window.addEventListener('popstate', () => { routeShouldFocus = true; route(); });
-window.addEventListener('keydown', event => { if (event.key === '/' && index && !(event.target instanceof HTMLInputElement)) { event.preventDefault(); app.querySelector<HTMLInputElement>('[data-search]')?.focus(); } });
+window.addEventListener('keydown', event => {
+  if (event.key !== '/' || !index || event.target instanceof HTMLInputElement) return;
+  event.preventDefault();
+  if (innerWidth < 760 && activePane !== 'symbols') { activePane = 'symbols'; renderWorkspace(); }
+  requestAnimationFrame(() => app.querySelector<HTMLInputElement>('[data-search]')?.focus());
+});
 window.addEventListener('online', () => index && renderWorkspace());
 window.addEventListener('offline', () => index && renderWorkspace());
 route();
+void processLicense();
 if ('serviceWorker' in navigator && import.meta.env.PROD) window.addEventListener('load', () => {
   let hadController = Boolean(navigator.serviceWorker.controller);
   navigator.serviceWorker.addEventListener('controllerchange', () => {

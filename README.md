@@ -15,14 +15,17 @@ the folder intake.
 - Search functions and files, then open a two-level code graph, relationship
   list, or source reference.
 - Import or export a Graphite index as JSON.
+- A $24 one-time Team license exports a standalone HTML review packet for one
+  focused symbol and its visible relationships.
 - Press `/` to search. Use arrow keys to move between graph nodes and pane tabs.
 - The demo opens offline after the first online visit.
 
 ## Accuracy and limits
 
-Calls within one file use exact names. Cross-file calls use imported or unique
-names and are labelled as estimates. Graphite can miss calls made through
-dynamic code, reflection, generated files, or complex types.
+A same-file call resolves to the same-file definition. Cross-file calls resolve
+through named imports or a unique definition. Ambiguous names stay unresolved,
+and cross-file matches are labelled as estimates. Dynamic calls can be absent
+from the graph.
 
 Folders named `.git`, `node_modules`, `vendor`, `dist`, `build`, `.next`,
 `coverage`, or `__pycache__` are ignored. Files over 2 MB are ignored. Folders
@@ -35,7 +38,9 @@ Selected source and the active index stay in browser memory. The free workflow
 uses no account, analytics, hosted source index, external fonts, or third-party
 scripts. The app files are cached for offline use, but opened source is not.
 Local exploration and Graphite index export are free. No paid purchase is
-offered in this release.
+required for these tools. Team costs $24 once for one user. It adds standalone
+local HTML review-packet export. Sociobot handles checkout, with Dodo as the
+merchant of record.
 
 See [Privacy](https://code-graph-explorer.sociobot.in/privacy) and
 [Terms](https://code-graph-explorer.sociobot.in/terms).
@@ -49,9 +54,9 @@ npm run build
 npm run preview
 ```
 
-`npm test` runs unit, claim, browser, mobile, offline, and accessibility checks.
-`npm run build` type-checks the app and writes the static artifact to `dist/`.
-No environment variable is required.
+`npm test` runs the unit and Playwright browser suites, including claim, mobile,
+offline, and accessibility checks. `npm run build` type-checks the app and
+writes the static artifact to `dist/`.
 
 ## Deploy the static artifact
 

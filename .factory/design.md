@@ -43,6 +43,10 @@ vermilion registration mark. Keyboard shortcuts appear as physical keycaps.
 
 Phone layout keeps search and graph as the primary view and switches source,
 graph, and symbols through a labelled three-tab dock; no pane is squeezed.
+The mobile graph keeps its paper-map scale inside a horizontal drafting strip,
+so node targets remain at least 44 px without turning the diagram into a list.
+Workspace export controls use short visible labels on phones; the Team dialog
+uses the same hard rule, offset vermilion shadow, and paper surfaces.
 
 ## Motion policy
 
