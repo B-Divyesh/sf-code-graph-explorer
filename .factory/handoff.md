@@ -2,9 +2,11 @@
 
 ## Repair scope
 
-Candidate `1d440f83d78dbed791a25770a0f1cfb753fe2862` repairs every blocking
-finding in `.factory/review-1.md` while retaining the static Vite artifact and
-Graphite’s cream-paper, halftone field-manual identity.
+Repair implementation `1d440f83d78dbed791a25770a0f1cfb753fe2862`, with the
+independently runnable claim-command correction in
+`94a842654573fbff6ef3cc85e03450fe9651f28b`, repairs every blocking finding in
+`.factory/review-1.md`. The static Vite artifact and Graphite’s cream-paper,
+halftone field-manual identity are unchanged.
 
 - The first screen now names the engineer and task. The primary action is
   **Try it with sample data**, followed by the exact result and three tested
@@ -17,9 +19,10 @@ Graphite’s cream-paper, halftone field-manual identity.
   scrolling unless Source is active. The 390 px regression follows Symbols →
   Graph → Source → Graph and checks the selected pane’s viewport bounds.
 - `.factory/claims.json` lists 28 visitor claims. Each id occurs in exactly one
-  tagged test. The suite covers parsing, navigation, storage and network
-  privacy, limits, JSON round-trip, demo reset/isolation, offline reload,
-  keyboard use, mobile panes, routing, and build output.
+  tagged test, and every listed command runs independently. The suite covers
+  parsing, navigation, storage and network privacy, limits, JSON round-trip,
+  demo reset/isolation, offline reload, keyboard use, mobile panes, routing,
+  and build output.
 - `/privacy`, `/terms`, `/demo`, and unknown URLs render distinct pages with
   route titles. Internal navigation moves focus to the new h1 and announces
   it. The Graphite-styled 404 includes Home and Demo paths.
@@ -37,13 +40,16 @@ Graphite’s cream-paper, halftone field-manual identity.
 
 ## Verification evidence
 
-Clean clone: `/tmp/graphite-clean-EWh1OX`, checked out at
-`1d440f83d78dbed791a25770a0f1cfb753fe2862` on 2026-08-28.
+Clean clone: `/tmp/code-graph-clean.P653BW`, cloned from `origin/main` at
+`94a842654573fbff6ef3cc85e03450fe9651f28b` on 2026-08-28.
 
 - `npm ci`: passed; 62 packages installed; 0 vulnerabilities.
 - `npm test`: passed. Vitest: 6/6. Playwright Chromium 1.58.2: 32/32.
-- Claims: all 28 manifest ids ran from the clean clone. Twenty-seven are in
-  `tests/claims.spec.ts`; `resolution-limits` is a tagged Vitest test.
+- Claims: every `test` command in `.factory/claims.json` ran independently
+  from the clean clone; 28/28 passed. Twenty-seven are Playwright tests;
+  `resolution-limits` is a tagged Vitest test selected with Vitest’s `-t`
+  option. A registry integrity check found 28 unique ids, one matching tag per
+  id, and no unlisted tags.
 - Accessibility: axe WCAG 2 A/AA found zero serious or critical violations on
   desktop landing, 390 px demo, 390 px privacy, and 390 px 404 routes.
 - Privacy: demo request interception observed only the app origin. Seeded real
@@ -55,7 +61,7 @@ Clean clone: `/tmp/graphite-clean-EWh1OX`, checked out at
 - Local `/opt/fleet/lib/verify-url.sh`: HTTP 200, zero console errors, title,
   `lang`, one h1, main landmark, image alt, and button labels passed.
 - Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100,
-  SEO 100; LCP 1.9 s, CLS 0, TBT 0 ms.
+  SEO 100; LCP 1.5 s, CLS 0, TBT 0 ms.
 - Final production build: `dist/index.html` exists. Initial JS is 35.30 KB raw
   / 13.09 KB gzip; CSS is 21.50 KB raw / 5.52 KB gzip; hero is 110.57 KB.
 
@@ -71,13 +77,16 @@ npm run build
 
 Deployed the verified `dist/` artifact to Azure Static Web Apps with
 `/opt/fleet/lib/deploy-static.sh code-graph-explorer dist`. Deployment id:
-`328a5d50-1a8c-4ab8-b36c-95107e9bb0b2`. Azure reported `Succeeded`; the custom
+`d71e8c8f-2bed-430d-a2aa-cefef2e9ee0b`. Azure reported `Succeeded`; the custom
 domain was `Ready` and returned HTTPS 200.
 
 Post-deploy verification at `https://code-graph-explorer.sociobot.in` passed:
-zero browser console/page errors, zero axe violations, the 390 px pane sequence,
-direct demo, offline demo reload, and Privacy/Terms/404 titles. No off-origin
-request occurred. The live entry JavaScript SHA-256 exactly matched `dist/`:
+the factory URL verifier returned HTTP 200 with zero console errors and valid
+title/lang/h1/main/alt/button checks. Standalone axe-core CLI 4.13.0 found zero
+WCAG 2 A/AA violations on Home, Demo, Privacy, Terms, and 404. A fresh live
+browser passed the 390 px pane sequence, direct demo, storage isolation,
+offline demo reload, and 404 route focus with zero off-origin requests. The
+live entry JavaScript SHA-256 exactly matched `dist/`:
 `7f6ef53f79ca890e807fc268ba02b2981aba6c1486b378d74f9aec49259b876d`.
 
 ## Known gaps
