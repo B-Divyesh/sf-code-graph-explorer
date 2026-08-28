@@ -27,6 +27,10 @@ change and its verification evidence.
 
 ## Post-deploy recheck
 
-Completed after the deployment for this work order. The exact deployment id,
-commit, cold-live checks, header check, and quality-gate results are recorded
-in `.factory/handoff.md`.
+Completed after deploying commit `a34e46a5341b0435507fdf62ac392d37e42a1db6`.
+Cold live checks passed for the first-screen CTA, direct demo/banner, storage
+isolation, the 390 px pane sequence, offline reload, legal routes, 404, focus,
+and same-origin demo requests. Playwright axe found zero serious/critical
+WCAG 2 A/AA issues on Home, Demo, Privacy, Terms, and 404. The live grammar
+header is `public, max-age=604800, must-revalidate`. Full evidence is in
+`.factory/handoff.md`.

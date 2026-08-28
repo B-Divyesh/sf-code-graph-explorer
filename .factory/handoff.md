@@ -1,98 +1,72 @@
 # Perfection loop round 1 handoff
 
-## Repair scope
+## Shipped repair
 
-Repair implementation `1d440f83d78dbed791a25770a0f1cfb753fe2862`, with the
-independently runnable claim-command correction in
-`94a842654573fbff6ef3cc85e03450fe9651f28b`, repairs every blocking finding in
-`.factory/review-1.md`. The static Vite artifact and Graphite’s cream-paper,
-halftone field-manual identity are unchanged.
+Commit `a34e46a5341b0435507fdf62ac392d37e42a1db6` (`fix: close final Graphite
+polish findings`) is pushed to `origin/main` and deployed as the static Azure
+artifact. It closes every finding in `.factory/review-1.md` and the remaining
+earlier grammar-cache minor.
 
-- The first screen now names the engineer and task. The primary action is
-  **Try it with sample data**, followed by the exact result and three tested
-  facts.
-- `/?demo=1` and `/demo` open the five-file codebase directly. The persistent
-  demo banner includes **Reset demo** and **Start for real**. Demo data is
-  rebuilt from bundled constants, stays in memory, and never reads or writes
-  production storage.
-- Phone pane switching now keeps inactive panes hidden and avoids source-line
-  scrolling unless Source is active. The 390 px regression follows Symbols →
-  Graph → Source → Graph and checks the selected pane’s viewport bounds.
-- `.factory/claims.json` lists 28 visitor claims. Each id occurs in exactly one
-  tagged test, and every listed command runs independently. The suite covers
-  parsing, navigation, storage and network privacy, limits, JSON round-trip,
-  demo reset/isolation, offline reload, keyboard use, mobile panes, routing,
-  and build output.
-- `/privacy`, `/terms`, `/demo`, and unknown URLs render distinct pages with
-  route titles. Internal navigation moves focus to the new h1 and announces
-  it. The Graphite-styled 404 includes Home and Demo paths.
-- Canonical, Open Graph, Twitter, Apple touch icon, route metadata, sitemap,
-  footer attribution/version, header Demo link, and legal links are present.
-  The landing sequence now includes the live graph preview, three-step method,
-  and honest limitations/privacy section.
-- The broken Sociobot checkout returned HTTP 404 during repair. Following the
-  review’s required fallback, all purchase, price, Team, and checkout controls
-  are hidden until the product is registered. The free product remains fully
-  usable; terms state that no paid purchase is offered in this release.
-- The generated service worker now bypasses conditional HTTP-cache bodies
-  while precaching and ignores `Vary: Origin` during cache matches. Five
-  concurrent offline demo reloads passed after this fix.
+- The first screen names engineers onboarding, debugging, or refactoring an
+  unfamiliar codebase. Its primary **Try it with sample data** action is
+  visible without scrolling at both 1440×900 and 390×844.
+- `?demo=1` and `/demo` enter the five-file, in-memory sandbox with a
+  persistent banner, Reset demo, Start for real, storage isolation, and
+  offline reload support.
+- All real routes have titles and metadata. Client navigation focuses and
+  announces the destination h1. Unknown paths have a Graphite-style 404.
+- The claim registry has 28 entries with one tagged test each. The unavailable
+  Team checkout is honestly absent; free graph exploration and JSON export
+  remain available.
+- `/wasm/*` now uses `public, max-age=604800, must-revalidate`; the
+  release-versioned worker still precaches the grammars for offline use.
 
-## Verification evidence
+## Exact verification evidence
 
-Clean clone: `/tmp/code-graph-clean.P653BW`, cloned from `origin/main` at
-`94a842654573fbff6ef3cc85e03450fe9651f28b` on 2026-08-28.
+Fresh-clone verification used `/tmp/code-graph-polish-clean.hpqwjC`, cloned
+after the push at `a34e46a5341b0435507fdf62ac392d37e42a1db6`.
 
-- `npm ci`: passed; 62 packages installed; 0 vulnerabilities.
-- `npm test`: passed. Vitest: 6/6. Playwright Chromium 1.58.2: 32/32.
-- Claims: every `test` command in `.factory/claims.json` ran independently
-  from the clean clone; 28/28 passed. Twenty-seven are Playwright tests;
-  `resolution-limits` is a tagged Vitest test selected with Vitest’s `-t`
-  option. A registry integrity check found 28 unique ids, one matching tag per
-  id, and no unlisted tags.
-- Accessibility: axe WCAG 2 A/AA found zero serious or critical violations on
-  desktop landing, 390 px demo, 390 px privacy, and 390 px 404 routes.
-- Privacy: demo request interception observed only the app origin. Seeded real
-  local/session storage values were unchanged; no demo keys were created.
-- Offline: direct demo reload passed after service-worker control and
-  `context.setOffline(true)`. A two-worker, five-repeat stress run passed 5/5.
-- Routing and focus: direct reloads passed for Demo, Privacy, Terms, and 404.
-  Client navigation focused the new h1.
-- Local `/opt/fleet/lib/verify-url.sh`: HTTP 200, zero console errors, title,
-  `lang`, one h1, main landmark, image alt, and button labels passed.
-- Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100,
-  SEO 100; LCP 1.5 s, CLS 0, TBT 0 ms.
-- Final production build: `dist/index.html` exists. Initial JS is 35.30 KB raw
-  / 13.09 KB gzip; CSS is 21.50 KB raw / 5.52 KB gzip; hero is 110.57 KB.
-
-Run the same gates with:
-
-```sh
-npm ci
-npm test
-npm run build
-```
+- `npm ci`: passed, 62 packages installed, 0 vulnerabilities.
+- Every command listed in `.factory/claims.json` was run independently from
+  that clone: 28/28 passed. The registry integrity check confirmed 28 claims
+  and exactly one matching `@claim:` tag per id.
+- Full clean-clone `npm test`: passed — 6 Vitest tests and 33 Playwright
+  tests, including browser, claim, mobile, offline, and axe integration.
+- Production build: passed. `dist/index.html`, generated `dist/sw.js`, and
+  `dist/staticwebapp.config.json` exist. Initial JS is 35.30 KB raw / 13.09 KB
+  gzip; CSS is 21.50 KB raw / 5.52 KB gzip; the 110.57 KB hero remains within
+  budget.
+- Local screenshots: `.factory/evidence/landing-desktop.png`,
+  `.factory/evidence/landing-mobile.png`, `.factory/evidence/demo-mobile.png`,
+  and `.factory/evidence/not-found.png`.
+- `verify-url.sh https://code-graph-explorer.sociobot.in/ .factory/evidence/live`:
+  HTTP 200; title, `lang`, one h1, main landmark, image alt, and button labels
+  present; zero console errors. Its cold-load time was 722 ms.
+- Live axe integration (Playwright Chromium) found 0 serious/critical WCAG
+  2 A/AA issues on Home, Demo, Privacy, Terms, and 404. The standalone Axe CLI
+  was attempted but cannot locate a system Chrome in this container; the
+  repository's pinned Playwright Chromium was used instead.
+- Live cold-browser recheck passed: first-screen CTA in the desktop viewport;
+  direct demo/banner; Symbols → Graph → Source → Graph at 390 px; production
+  storage untouched; demo requests same-origin only; Demo/Privacy/Terms/404
+  titles and one h1; client navigation focuses the destination h1; offline
+  demo reload works after service-worker control.
+- Live grammar response:
+  `cache-control: public, max-age=604800, must-revalidate` at
+  `/wasm/tree-sitter-typescript.wasm`.
+- Mobile Lighthouse against the deployed site: Performance 99, Accessibility
+  100, Best Practices 100, SEO 100; LCP 1.6 s, CLS 0, TBT 80 ms.
 
 ## Deployment
 
-Deployed the verified `dist/` artifact to Azure Static Web Apps with
-`/opt/fleet/lib/deploy-static.sh code-graph-explorer dist`. Deployment id:
-`d71e8c8f-2bed-430d-a2aa-cefef2e9ee0b`. Azure reported `Succeeded`; the custom
-domain was `Ready` and returned HTTPS 200.
+Deployment ran through `/opt/fleet/lib/deploy-static.sh code-graph-explorer
+dist`. The live custom domain returned the new `v1.1.1` hero and the updated
+grammar-cache header immediately afterward:
+`https://code-graph-explorer.sociobot.in/`.
 
-Post-deploy verification at `https://code-graph-explorer.sociobot.in` passed:
-the factory URL verifier returned HTTP 200 with zero console errors and valid
-title/lang/h1/main/alt/button checks. Standalone axe-core CLI 4.13.0 found zero
-WCAG 2 A/AA violations on Home, Demo, Privacy, Terms, and 404. A fresh live
-browser passed the 390 px pane sequence, direct demo, storage isolation,
-offline demo reload, and 404 route focus with zero off-origin requests. The
-live entry JavaScript SHA-256 exactly matched `dist/`:
-`7f6ef53f79ca890e807fc268ba02b2981aba6c1486b378d74f9aec49259b876d`.
+## Known limits
 
-## Known gaps
-
-No blocking review finding remains. Cross-file resolution is intentionally
-estimated, so dynamic dispatch, aliases, reflection, generated code, and
-complex types can still create missing or incorrect relationships. Every
-estimated relationship is labelled. Paid Team export remains unavailable
-until the factory registers a working Sociobot billing product.
+No review finding remains open. Cross-file relationships are intentionally
+labelled estimates; dynamic calls, reflection, generated code, aliases, and
+complex types can still be missing or incorrect. This is a documented product
+limit, not a deferred defect.
