@@ -1,72 +1,36 @@
-# Perfection loop round 1 handoff
+# Adversarial first-read review 2 handoff
 
-## Shipped repair
+## Outcome
 
-Commit `a34e46a5341b0435507fdf62ac392d37e42a1db6` (`fix: close final Graphite
-polish findings`) is pushed to `origin/main` and deployed as the static Azure
-artifact. It closes every finding in `.factory/review-1.md` and the remaining
-earlier grammar-cache minor.
+Review 2 is complete with verdict **FAIL**. No product code was changed.
+`.factory/review-2.md` contains the cold mobile/desktop read, full landing and
+README copy audit, demo/privacy/offline evidence, all claim-command results,
+the earlier-finding audit, structure/accessibility checks, and exact fixes.
 
-- The first screen names engineers onboarding, debugging, or refactoring an
-  unfamiliar codebase. Its primary **Try it with sample data** action is
-  visible without scrolling at both 1440×900 and 390×844.
-- `?demo=1` and `/demo` enter the five-file, in-memory sandbox with a
-  persistent banner, Reset demo, Start for real, storage isolation, and
-  offline reload support.
-- All real routes have titles and metadata. Client navigation focuses and
-  announces the destination h1. Unknown paths have a Graphite-style 404.
-- The claim registry has 28 entries with one tagged test each. The unavailable
-  Team checkout is honestly absent; free graph exploration and JSON export
-  remain available.
-- `/wasm/*` now uses `public, max-age=604800, must-revalidate`; the
-  release-versioned worker still precaches the grammars for offline use.
+Current findings: three blocking and seven major. The blocking items are the
+broken `/` search shortcut in the default 390-pixel demo, incomplete assertions
+behind several green claims, and core phone targets below 44 × 44 pixels. Major
+items cover six unlisted/partially listed README claims and the brief's missing
+Team review-packet export.
 
-## Exact verification evidence
+## Verification performed
 
-Fresh-clone verification used `/tmp/code-graph-polish-clean.hpqwjC`, cloned
-after the push at `a34e46a5341b0435507fdf62ac392d37e42a1db6`.
+- Fresh live Chromium contexts at 390 × 844 and 1440 × 900.
+- Direct and one-click demo entry, realistic seed, reset, exit, mobile panes,
+  browser storage sentinels, network/source interception, and offline reload.
+- Live route/title/h1/metadata/focus/back/404/link crawl and console monitoring.
+- Live axe-core WCAG 2 A/AA scans on Home, Demo, Privacy, Terms, and 404: zero
+  automated violations.
+- Reduced-motion computation and manual 390-pixel target measurements.
+- Clean no-local clone at `/tmp/code-graph-review2.lAbRz9`:
+  - `npm ci`: passed, 0 vulnerabilities.
+  - All 28 commands from `.factory/claims.json`: passed independently.
+  - Registry integrity: 28 entries, 28 unique tags, one tag per entry.
+  - `npm test`: passed, 6 unit and 33 Playwright tests.
+  - `npm run build`: passed and produced `dist/`.
 
-- `npm ci`: passed, 62 packages installed, 0 vulnerabilities.
-- Every command listed in `.factory/claims.json` was run independently from
-  that clone: 28/28 passed. The registry integrity check confirmed 28 claims
-  and exactly one matching `@claim:` tag per id.
-- Full clean-clone `npm test`: passed — 6 Vitest tests and 33 Playwright
-  tests, including browser, claim, mobile, offline, and axe integration.
-- Production build: passed. `dist/index.html`, generated `dist/sw.js`, and
-  `dist/staticwebapp.config.json` exist. Initial JS is 35.30 KB raw / 13.09 KB
-  gzip; CSS is 21.50 KB raw / 5.52 KB gzip; the 110.57 KB hero remains within
-  budget.
-- Local screenshots: `.factory/evidence/landing-desktop.png`,
-  `.factory/evidence/landing-mobile.png`, `.factory/evidence/demo-mobile.png`,
-  and `.factory/evidence/not-found.png`.
-- `verify-url.sh https://code-graph-explorer.sociobot.in/ .factory/evidence/live`:
-  HTTP 200; title, `lang`, one h1, main landmark, image alt, and button labels
-  present; zero console errors. Its cold-load time was 722 ms.
-- Live axe integration (Playwright Chromium) found 0 serious/critical WCAG
-  2 A/AA issues on Home, Demo, Privacy, Terms, and 404. The standalone Axe CLI
-  was attempted but cannot locate a system Chrome in this container; the
-  repository's pinned Playwright Chromium was used instead.
-- Live cold-browser recheck passed: first-screen CTA in the desktop viewport;
-  direct demo/banner; Symbols → Graph → Source → Graph at 390 px; production
-  storage untouched; demo requests same-origin only; Demo/Privacy/Terms/404
-  titles and one h1; client navigation focuses the destination h1; offline
-  demo reload works after service-worker control.
-- Live grammar response:
-  `cache-control: public, max-age=604800, must-revalidate` at
-  `/wasm/tree-sitter-typescript.wasm`.
-- Mobile Lighthouse against the deployed site: Performance 99, Accessibility
-  100, Best Practices 100, SEO 100; LCP 1.6 s, CLS 0, TBT 80 ms.
+## Left for the owner
 
-## Deployment
-
-Deployment ran through `/opt/fleet/lib/deploy-static.sh code-graph-explorer
-dist`. The live custom domain returned the new `v1.1.1` hero and the updated
-grammar-cache header immediately afterward:
-`https://code-graph-explorer.sociobot.in/`.
-
-## Known limits
-
-No review finding remains open. Cross-file relationships are intentionally
-labelled estimates; dynamic calls, reflection, generated code, aliases, and
-complex types can still be missing or incorrect. This is a documented product
-limit, not a deferred defect.
+No deployment was requested or performed. Resolve every finding in
+`.factory/review-2.md`, add the missing viewport and claim assertions, then run
+the entire adversarial checklist again from a fresh clone and browser context.
