@@ -1,5 +1,43 @@
 # Handoff — code-graph-explorer
 
+## Adversarial first-read review 1 — FAIL (2026-08-28)
+
+Completed a read-only review of the live deployment and base commit
+`33857d1f033e21aafc31e6962b58e25cb2421960`. Product code was not changed.
+The full evidence, exact copy inventory, rewrites, unlisted-claim inventory, and
+severity-ordered verdict are in `.factory/review-1.md`.
+
+Verification performed:
+
+- Fresh Playwright 1.58.2 contexts at 390 × 844 and 1440 × 900, including cold
+  first-screen captures, the one-click sample, direct `/demo`, storage
+  isolation, offline reload, route/back/focus behavior, and axe.
+- Live link/route checks for Home, Privacy, Terms, checkout, and an unknown URL.
+- `npm ci`, `npm test` (5/5 passed), and `npm run build` (passed; `dist/`
+  produced).
+- Claim discovery by `.factory/claims.json` and `@claim:` tags. The registry is
+  absent, so no registered claim command exists to run.
+
+Release blockers found:
+
+1. At 390 px the Source pane covers the selected Graph and Symbols panes; the
+   core graph explorer is not usable on a phone.
+2. The sample has no `/demo` entry, banner, Reset, Start for real, or isolated
+   data namespace, and it reads production license storage.
+3. The first screen does not identify the intended engineer or situation.
+4. `.factory/claims.json` and all tagged claim tests are missing while the live
+   page and README make numerous claims.
+5. Unknown routes render Home with HTTP 200 instead of a designed 404.
+6. The advertised Team checkout link returns HTTP 404.
+
+Also required before re-review: add route focus/announcements and social/
+canonical metadata; complete the standard landing structure; repair the footer
+contract; and apply the copy rewrites in the report. Run the future claim suite
+from a direct, clean `/demo` sandbox. No deployment, billing, DNS, or
+infrastructure action was taken.
+
+## Prior handoff history
+
 ## Independent verification 3 — PASS
 
 Candidate `8baba55fe349f18151747855da7f054769ee00d3` and
