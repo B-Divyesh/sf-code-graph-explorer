@@ -5,7 +5,7 @@ import type { CodeIndex, CodeSymbol, FileInput, GraphEdge } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 const SITE = 'https://code-graph-explorer.sociobot.in';
-const BUILD_ID = '1.1.0';
+const BUILD_ID = '1.1.1';
 const supported = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.py', '.go'];
 const ignoredParts = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'vendor', '__pycache__', 'coverage']);
 let index: CodeIndex | null = null;

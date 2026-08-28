@@ -80,3 +80,10 @@ the product footer.
 The 1200×630 Open Graph image and 180×180 Apple touch icon are crops of that
 same original source. They were produced locally with ImageMagick on
 2026-08-28; no additional stock or third-party imagery was introduced.
+
+## Release cache policy
+
+The un-hashed Tree-sitter grammar files are served with a one-week,
+must-revalidate cache policy. The release-versioned service worker precaches
+them for offline use; revalidation prevents a grammar update from becoming
+permanently stale.

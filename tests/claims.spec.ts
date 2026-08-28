@@ -223,6 +223,8 @@ test('@claim:no-third-party-runtime keeps the free workflow same-origin', async 
 
 test('@claim:build-contract emits the Azure static site files', async () => {
   for (const file of ['dist/index.html', 'dist/sw.js', 'dist/staticwebapp.config.json']) await expect(readFile(file, 'utf8')).resolves.toBeTruthy();
+  const swa = JSON.parse(await readFile('dist/staticwebapp.config.json', 'utf8')) as { routes: Array<{ route: string; headers: Record<string, string> }> };
+  expect(swa.routes).toContainEqual({ route: '/wasm/*', headers: { 'cache-control': 'public, max-age=604800, must-revalidate' } });
 });
 
 test('@claim:route-contract deep links, titles, focus, and not-found state work', async ({ page }) => {

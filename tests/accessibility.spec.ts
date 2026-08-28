@@ -25,3 +25,14 @@ test('browser smoke: no console errors, metadata and legal links are present', a
   await expect(page.getByRole('contentinfo').getByRole('link', { name: 'Terms' })).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+test('first screen keeps the sample action in view on desktop and phone', async ({ page }) => {
+  for (const viewport of [{ width: 1440, height: 900 }, { width: 390, height: 844 }]) {
+    await page.setViewportSize(viewport);
+    await page.goto('/');
+    const action = page.getByRole('link', { name: 'Try it with sample data' });
+    const box = await action.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.y + box!.height).toBeLessThanOrEqual(viewport.height);
+  }
+});
