@@ -1,161 +1,82 @@
-# Handoff — code-graph-explorer
+# Perfection loop round 1 handoff
 
-## Adversarial first-read review 1 — FAIL (2026-08-28)
+## Repair scope
 
-Completed a read-only review of the live deployment and base commit
-`33857d1f033e21aafc31e6962b58e25cb2421960`. Product code was not changed.
-The full evidence, exact copy inventory, rewrites, unlisted-claim inventory, and
-severity-ordered verdict are in `.factory/review-1.md`.
+Candidate `1d440f83d78dbed791a25770a0f1cfb753fe2862` repairs every blocking
+finding in `.factory/review-1.md` while retaining the static Vite artifact and
+Graphite’s cream-paper, halftone field-manual identity.
 
-Verification performed:
+- The first screen now names the engineer and task. The primary action is
+  **Try it with sample data**, followed by the exact result and three tested
+  facts.
+- `/?demo=1` and `/demo` open the five-file codebase directly. The persistent
+  demo banner includes **Reset demo** and **Start for real**. Demo data is
+  rebuilt from bundled constants, stays in memory, and never reads or writes
+  production storage.
+- Phone pane switching now keeps inactive panes hidden and avoids source-line
+  scrolling unless Source is active. The 390 px regression follows Symbols →
+  Graph → Source → Graph and checks the selected pane’s viewport bounds.
+- `.factory/claims.json` lists 28 visitor claims. Each id occurs in exactly one
+  tagged test. The suite covers parsing, navigation, storage and network
+  privacy, limits, JSON round-trip, demo reset/isolation, offline reload,
+  keyboard use, mobile panes, routing, and build output.
+- `/privacy`, `/terms`, `/demo`, and unknown URLs render distinct pages with
+  route titles. Internal navigation moves focus to the new h1 and announces
+  it. The Graphite-styled 404 includes Home and Demo paths.
+- Canonical, Open Graph, Twitter, Apple touch icon, route metadata, sitemap,
+  footer attribution/version, header Demo link, and legal links are present.
+  The landing sequence now includes the live graph preview, three-step method,
+  and honest limitations/privacy section.
+- The broken Sociobot checkout returned HTTP 404 during repair. Following the
+  review’s required fallback, all purchase, price, Team, and checkout controls
+  are hidden until the product is registered. The free product remains fully
+  usable; terms state that no paid purchase is offered in this release.
+- The generated service worker now bypasses conditional HTTP-cache bodies
+  while precaching and ignores `Vary: Origin` during cache matches. Five
+  concurrent offline demo reloads passed after this fix.
 
-- Fresh Playwright 1.58.2 contexts at 390 × 844 and 1440 × 900, including cold
-  first-screen captures, the one-click sample, direct `/demo`, storage
-  isolation, offline reload, route/back/focus behavior, and axe.
-- Live link/route checks for Home, Privacy, Terms, checkout, and an unknown URL.
-- `npm ci`, `npm test` (5/5 passed), and `npm run build` (passed; `dist/`
-  produced).
-- Claim discovery by `.factory/claims.json` and `@claim:` tags. The registry is
-  absent, so no registered claim command exists to run.
+## Verification evidence
 
-Release blockers found:
+Clean clone: `/tmp/graphite-clean-EWh1OX`, checked out at
+`1d440f83d78dbed791a25770a0f1cfb753fe2862` on 2026-08-28.
 
-1. At 390 px the Source pane covers the selected Graph and Symbols panes; the
-   core graph explorer is not usable on a phone.
-2. The sample has no `/demo` entry, banner, Reset, Start for real, or isolated
-   data namespace, and it reads production license storage.
-3. The first screen does not identify the intended engineer or situation.
-4. `.factory/claims.json` and all tagged claim tests are missing while the live
-   page and README make numerous claims.
-5. Unknown routes render Home with HTTP 200 instead of a designed 404.
-6. The advertised Team checkout link returns HTTP 404.
+- `npm ci`: passed; 62 packages installed; 0 vulnerabilities.
+- `npm test`: passed. Vitest: 6/6. Playwright Chromium 1.58.2: 32/32.
+- Claims: all 28 manifest ids ran from the clean clone. Twenty-seven are in
+  `tests/claims.spec.ts`; `resolution-limits` is a tagged Vitest test.
+- Accessibility: axe WCAG 2 A/AA found zero serious or critical violations on
+  desktop landing, 390 px demo, 390 px privacy, and 390 px 404 routes.
+- Privacy: demo request interception observed only the app origin. Seeded real
+  local/session storage values were unchanged; no demo keys were created.
+- Offline: direct demo reload passed after service-worker control and
+  `context.setOffline(true)`. A two-worker, five-repeat stress run passed 5/5.
+- Routing and focus: direct reloads passed for Demo, Privacy, Terms, and 404.
+  Client navigation focused the new h1.
+- Local `/opt/fleet/lib/verify-url.sh`: HTTP 200, zero console errors, title,
+  `lang`, one h1, main landmark, image alt, and button labels passed.
+- Lighthouse mobile: Performance 100, Accessibility 100, Best Practices 100,
+  SEO 100; LCP 1.9 s, CLS 0, TBT 0 ms.
+- Final production build: `dist/index.html` exists. Initial JS is 35.30 KB raw
+  / 13.09 KB gzip; CSS is 21.50 KB raw / 5.52 KB gzip; hero is 110.57 KB.
 
-Also required before re-review: add route focus/announcements and social/
-canonical metadata; complete the standard landing structure; repair the footer
-contract; and apply the copy rewrites in the report. Run the future claim suite
-from a direct, clean `/demo` sandbox. No deployment, billing, DNS, or
-infrastructure action was taken.
-
-## Prior handoff history
-
-## Independent verification 3 — PASS
-
-Candidate `8baba55fe349f18151747855da7f054769ee00d3` and
-`https://code-graph-explorer.sociobot.in/` were independently verified on
-2026-08-27. The live deployment is byte-identical to a clean production build
-for the sampled HTML, JS, CSS, service-worker, image, and grammar artifacts.
-
-`npm ci`, `npm test` (5/5), `tsc --noEmit` through `npm run build`, and the
-exact `npm run build` production command passed. Desktop and 390px browser
-tests passed the five-file sample, TS/Python/Go input, unsupported/oversized
-file recovery, malformed JSON recovery, 5,001-file rejection, JSON export,
-source and graph navigation, keyboard/focus behavior, reduced motion, and
-offline reload. Local axe WCAG 2 A/AA reported zero violations; local and live
-pages had no console/page errors. A controlled-client worker update simulation
-showed the new release cache and visible Reload notice.
-
-There are no release-blocking defects. See
-`.factory/verification-3.md` for exact commands, hashes, headers, privacy and
-outbound-request evidence, and the one P3 follow-up: un-hashed grammar WASM
-responses have a 30-second HTTP cache even though the service worker precaches
-them.
-
-## Repair status — ready to deploy
-
-This repair resolves both P1 findings in independent verifier commit
-`d9222eb8872116a6000f3356c8356aff55238413` while retaining the previously
-passing parsing, graph, privacy, export, and accessibility behavior.
-
-- Every folder path now applies one shared **5,000 eligible supported-file**
-  boundary: File System Access picker, `webkitdirectory` fallback, and dropped
-  directories. Exactly 5,000 files index. At 5,001, Graphite does not retain a
-  partial index and displays a fixed explanation. Directory traversal is sorted
-  for deterministic handling; drag/drop also consumes every `readEntries()`
-  batch instead of silently omitting batches.
-- `npm run build` now generates `dist/sw.js` from the complete emitted release.
-  Its `graphite-shell-<content-hash>` cache is release-versioned, its navigation
-  strategy is network-first with a cached `index.html` fallback offline, and it
-  precaches the app shell/assets. The worker script is served `no-cache`.
-  `skipWaiting` and `clientsClaim` move existing controlled clients to the new
-  worker; a visible in-app “newer shell ready” Reload action refreshes the
-  document onto the new shell.
-
-## What shipped
-
-- Graphite, a complete static browser workspace for opening local folders and
-  navigating TypeScript/TSX, JavaScript/JSX, Python, and Go code.
-- Lazy-loaded Tree-sitter WASM parsers extract definitions, methods, lexical
-  calls, and imports. A labelled resolver links same-file names exactly and
-  cross-file names/import paths heuristically. Regex parsing remains a graceful
-  fallback if a grammar cannot load.
-- Folder picker, directory drag/drop, unsupported/empty/error states,
-  incremental yielding during indexing, a five-file sample, and portable JSON
-  index import/export.
-- Searchable function/class/type/module list, one- or two-hop SVG focus graph,
-  accessible text relationship list, synchronized source view with clickable
-  references, `/` search shortcut, arrow navigation, and mobile pane tabs.
-- Offline, release-versioned service-worker shell. No source persistence or
-  upload; sources live in memory. Dependency/build folders and files over 2 MB
-  are filtered, and a 5,001-file selection is rejected before indexing.
-- Sociobot paid-unlock contract: checkout, query-token capture, daily cached
-  verification, restore field, revoked/invalid notice, and a genuinely gated
-  standalone HTML review-packet export. Core exploration and JSON export remain
-  free.
-- Original generated halftone code-cartography hero (108 KB WebP), visual system,
-  responsive 390 px layout, privacy/terms routes, favicon, robots/sitemap, CSP,
-  and Azure Static Web Apps configuration.
-
-## How to run and verify
+Run the same gates with:
 
 ```sh
-npm install
+npm ci
 npm test
 npm run build
-npm run preview
 ```
 
-The deploy command is exactly `npm run build`; output is `dist/`, with
-`dist/index.html` at its root. `prebuild` copies only the required Tree-sitter
-runtime and four grammar WASMs into the public asset tree.
+## Deployment
 
-Repair verification on 2026-08-27:
+Static deployment target: `https://code-graph-explorer.sociobot.in` using
+`/opt/fleet/lib/deploy-static.sh code-graph-explorer dist` after the work-order
+build command `npm ci && npm test && npm run build`.
 
-- Clean `npm ci`, `npm test` and `npm run build` passed. Tests include exact
-  5,000 and 5,001 limit regressions. The built initial JS is 35.60 KB raw
-  (13.60 KB gzip) and CSS 18.97 KB raw (4.97 KB gzip), below the static budget.
-- `/opt/fleet/lib/verify-url.sh` passed locally and against the current live
-  URL: HTTP 200, no browser errors, title/lang/main/alt/button checks valid.
-- Playwright local smoke: the five-file sample stayed at 12 symbols/10 edges;
-  representative TypeScript, Python, and Go input yielded 4 accepted files,
-  8 symbols, and 2 relationships (Markdown excluded); malformed JSON retained
-  its recovery screen; 5,000 files indexed and 5,001 produced the fixed error.
-- At 390×844 all three labelled mobile panes worked; `/` focused search and
-  ArrowRight moved graph focus. axe-core WCAG 2 A/AA found 0 violations on the
-  loaded workspace.
-- Offline test: after worker control, `context.setOffline(true)` followed by a
-  reload rendered the landing shell from the generated release cache.
-  Update simulation changed the worker release, observed the new cache and
-  visible “A newer Graphite shell is ready / Reload” control in an already
-  controlled persistent browser profile.
-- Live parity check: the deployed URL correctly remains the prior verifier
-  candidate until the factory deploys this commit, so its `sw.js` hash differs
-  from this build by design. Local and live basic page checks both passed; run
-  the hash/parity check again after deployment.
+## Known gaps
 
-## Known gaps and next steps
-
-- Cross-file resolution is intentionally heuristic: aliases, overloads,
-  interfaces, reflection, dynamic dispatch, and generated code can create false
-  or missing edges. Every uncertain edge is marked in UI and export.
-- Large-project parsing yields between files but still retains selected source
-  in memory; a worker + IndexedDB chunk store is the next step toward the
-  200k-LOC target on lower-memory phones.
-- File System Access is Chromium-only; Firefox/Safari use the directory input.
-  Dragged directory traversal relies on the widely supported WebKit entry API.
-- The live deployment has not yet been updated with this repair; deployment is
-  owned by the factory. Its old fixed-cache worker will be replaced on the next
-  deploy by the generated release worker.
-- Team review packets are local files. Hosted team permalinks remain a future
-  server-backed tier and were not implied in this v1.
-- The production billing product must be registered by the factory. Staging can
-  set `VITE_BILLING_API_URL=https://pilot-api.sociobot.in/api/v1`.
+No blocking review finding remains. Cross-file resolution is intentionally
+estimated, so dynamic dispatch, aliases, reflection, generated code, and
+complex types can still create missing or incorrect relationships. Every
+estimated relationship is labelled. Paid Team export remains unavailable
+until the factory registers a working Sociobot billing product.
