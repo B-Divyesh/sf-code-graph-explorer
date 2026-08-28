@@ -1,73 +1,63 @@
-# Graphite — local code graph explorer
+# Graphite
 
-Graphite is a browser-based call and dependency graph for engineers onboarding
-to, debugging, or refactoring an unfamiliar codebase. Open a folder and move
-between functions, callers, callees, imports, and source without uploading the
-repository or installing an IDE extension.
+Graphite is a browser-based code graph for engineers onboarding to, debugging,
+or refactoring an unfamiliar codebase. Open a codebase and move between
+functions, calls, imports, and source without uploading files.
 
-It supports TypeScript/TSX, JavaScript/JSX, Python, and Go. Tree-sitter WASM
-extracts syntax in the browser; cross-file call resolution uses deliberately
-labelled name-and-import heuristics. Dynamic dispatch, reflection, generated
-code, and complex type resolution can produce missing or false edges.
+Try the isolated five-file demo at
+`https://code-graph-explorer.sociobot.in/?demo=1`. Reset restores the bundled
+files and selected function. Start for real discards the demo and returns to
+the folder intake.
 
-## Features
+## What Graphite can inspect
 
-- Folder picker, drag-and-drop, and a built-in five-file sample
-- Incremental, main-thread-friendly local indexing with ignored dependency and
-  build directories
-- Searchable symbols and modules, depth-limited SVG focus graph, accessible
-  relationship list, and clickable source references
-- Portable Graphite JSON import/export
-- Offline app shell; active source is held only in browser memory
-- Keyboard navigation (`/` focuses search, arrows move through graph nodes)
-- Optional one-time Team license for standalone HTML review-packet export;
-  local exploration and JSON export remain free
+- Graphite parses TypeScript/TSX, JavaScript/JSX, Python, and Go in the browser.
+- Search functions and files, then open a two-level code graph, relationship
+  list, or source reference.
+- Import or export a Graphite index as JSON.
+- Press `/` to search. Use arrow keys to move between graph nodes and pane tabs.
+- The demo opens offline after the first online visit.
 
-## Develop and verify
+## Accuracy and limits
 
-Requires Node.js 20 or newer.
+Calls within one file use exact names. Cross-file calls use imported or unique
+names and are labelled as estimates. Graphite can miss calls made through
+dynamic code, reflection, generated files, or complex types.
+
+Folders named `.git`, `node_modules`, `vendor`, `dist`, `build`, `.next`,
+`coverage`, or `__pycache__` are ignored. Files over 2 MB are ignored. Folders
+with more than 5,000 supported files are rejected without keeping a partial
+codebase.
+
+## Privacy and access
+
+Selected source and the active index stay in browser memory. The free workflow
+uses no account, analytics, hosted source index, external fonts, or third-party
+scripts. The app files are cached for offline use, but opened source is not.
+Local exploration and Graphite index export are free. No paid purchase is
+offered in this release.
+
+See [Privacy](https://code-graph-explorer.sociobot.in/privacy) and
+[Terms](https://code-graph-explorer.sociobot.in/terms).
+
+## Run Graphite locally
 
 ```sh
-npm install
-npm run dev
+npm ci
 npm test
 npm run build
 npm run preview
 ```
 
-The exact production build command is `npm run build`. It copies the four
-Tree-sitter grammars and runtime into the static asset tree, type-checks the
-app, and writes deployable output to `dist/` with `dist/index.html` at its root.
+`npm test` runs unit, claim, browser, mobile, offline, and accessibility checks.
+`npm run build` type-checks the app and writes the static artifact to `dist/`.
+No environment variable is required.
 
-No environment variable is required for the free app. The billing API defaults
-to `https://api.sociobot.in/api/v1`; staging can set:
+## Deploy the static artifact
 
-```sh
-VITE_BILLING_API_URL=https://pilot-api.sociobot.in/api/v1 npm run build
-```
-
-## How indexing works
-
-Source files are parsed locally with language-specific Tree-sitter WASM
-grammars. Definitions, lexical calls, and imports become a versioned in-memory
-index. Calls resolve exactly within a file and heuristically across files by
-unique/exported name; imports resolve against normalized relative paths. Every
-uncertain edge is marked `heuristic` in the UI and JSON.
-
-Folders named `.git`, `node_modules`, `vendor`, `dist`, `build`, `.next`,
-`coverage`, or `__pycache__` are ignored. Individual files over 2 MB are
-ignored. A folder with more than 5,000 eligible supported files is not indexed
-at all, with a clear local error, so Graphite never silently retains a partial
-project or exceeds its browser-memory guard.
-
-## Privacy and deployment
-
-The application has no analytics, hosted source index, external fonts, or
-runtime CDN. The only external request is an explicit Team checkout or license
-verification. See `/privacy` and `/terms` in the app.
-
-The `dist/` directory is ready for Azure Static Web Apps. Do not deploy billing,
-DNS, or infrastructure from this repository.
+Deploy the `dist/` folder to Azure Static Web Apps. The repository includes the
+SPA fallback, security headers, cache rules, service worker, sitemap, and robots
+file. Do not deploy billing, DNS, or infrastructure from this repository.
 
 ## License
 

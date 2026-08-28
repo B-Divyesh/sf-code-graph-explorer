@@ -6,3 +6,5 @@ graphify-out/
 .DS_Store
 .factory/evidence/
 public/wasm/
+test-results/
+playwright-report/

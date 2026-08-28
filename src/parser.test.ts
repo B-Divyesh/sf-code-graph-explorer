@@ -42,4 +42,12 @@ describe('code indexer', () => {
     expect(exceedsDirectoryFileLimit(MAX_SUPPORTED_FILES + 1)).toBe(true);
     expect(result.files).toHaveLength(MAX_SUPPORTED_FILES + 1);
   });
+
+  it('@claim:resolution-limits does not invent a target for a dynamic call', async () => {
+    const index = await buildIndex([
+      { path: 'dynamic.ts', content: "export function dispatch(name: string) { return globalThis[name]() }" },
+    ], 'limits');
+    expect(index.edges.filter(edge => edge.kind === 'call')).toHaveLength(0);
+    expect(index.warnings.join(' ')).toContain('Dynamic dispatch');
+  });
 });

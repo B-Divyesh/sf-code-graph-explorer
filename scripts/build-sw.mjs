@@ -29,7 +29,11 @@ const CACHE = \`graphite-shell-\${RELEASE}\`;
 const PRECACHE = ${assets};
 
 self.addEventListener('install', event => {
-  event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(PRECACHE)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE).then(cache => Promise.all(PRECACHE.map(async path => {
+    const response = await fetch(new Request(path, { cache: 'reload' }));
+    if (!response.ok) throw new Error(\`Could not precache \${path}: \${response.status}\`);
+    await cache.put(path, response);
+  }))).then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', event => {
@@ -48,10 +52,10 @@ self.addEventListener('fetch', event => {
     event.respondWith(fetch(event.request).then(response => {
       if (response.ok) caches.open(CACHE).then(cache => cache.put('/index.html', response.clone()));
       return response;
-    }).catch(() => caches.match('/index.html')));
+    }).catch(() => caches.match('/index.html', { ignoreVary: true })));
     return;
   }
-  event.respondWith(caches.match(event.request).then(cached => cached || fetch(event.request).then(response => {
+  event.respondWith(caches.match(event.request, { ignoreVary: true }).then(cached => cached || fetch(event.request).then(response => {
     if (response.ok && PRECACHE.includes(new URL(event.request.url).pathname)) caches.open(CACHE).then(cache => cache.put(event.request, response.clone()));
     return response;
   })));

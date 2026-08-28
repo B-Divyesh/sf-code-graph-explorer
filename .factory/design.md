@@ -76,3 +76,7 @@ Generation provenance: Azure AI Foundry `factory-image`, generated 2026-08-27
 with `/opt/fleet/lib/gen-image.sh`; the exact prompt is saved beside the source
 PNG in `assets/src/code-cartography.json`. Generated imagery is disclosed in
 the product footer.
+
+The 1200×630 Open Graph image and 180×180 Apple touch icon are crops of that
+same original source. They were produced locally with ImageMagick on
+2026-08-28; no additional stock or third-party imagery was introduced.

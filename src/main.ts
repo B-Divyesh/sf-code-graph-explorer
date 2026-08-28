@@ -4,8 +4,8 @@ import { applyDirectoryFileLimit, directoryLimitMessage, exceedsDirectoryFileLim
 import type { CodeIndex, CodeSymbol, FileInput, GraphEdge } from './types';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
-const BILLING_BASE = import.meta.env.VITE_BILLING_API_URL || 'https://api.sociobot.in/api/v1';
-const PRODUCT = 'code-graph-explorer';
+const SITE = 'https://code-graph-explorer.sociobot.in';
+const BUILD_ID = '1.1.0';
 const supported = ['.ts', '.tsx', '.mts', '.cts', '.js', '.jsx', '.mjs', '.cjs', '.py', '.go'];
 const ignoredParts = new Set(['node_modules', '.git', 'dist', 'build', '.next', 'vendor', '__pycache__', 'coverage']);
 let index: CodeIndex | null = null;
@@ -16,12 +16,9 @@ let activePane: 'symbols' | 'graph' | 'source' = 'graph';
 let busy = false;
 let statusMessage = '';
 let updateNotice = false;
-
-function licenseVerdict(): { valid: boolean; reason?: string; checkedAt?: number } | null {
-  try { return JSON.parse(localStorage.getItem(`sb_license_verdict:${PRODUCT}`) || 'null'); } catch { return null; }
-}
-
-function teamUnlocked(): boolean { return Boolean(licenseVerdict()?.valid); }
+let demoMode = false;
+let routeShouldFocus = false;
+let demoStarting = false;
 
 const demoFiles: FileInput[] = [
   { path: 'src/main.ts', content: `import { createServer } from './server'\nimport { loadConfig } from './config'\n\nexport async function boot() {\n  const config = loadConfig()\n  const server = createServer(config)\n  return server.start()\n}\n\nboot()` },
@@ -46,49 +43,84 @@ const icon = (name: 'folder' | 'sample' | 'import' | 'export' | 'search' | 'lock
   return `<svg class="icon" aria-hidden="true" viewBox="0 0 24 24">${paths[name]}</svg>`;
 };
 
-function chrome(content: string, legal = false): string {
+function setMeta(title: string, description: string, path: string): void {
+  document.title = title;
+  const canonical = `${SITE}${path}`;
+  document.querySelector<HTMLMetaElement>('meta[name="description"]')!.content = description;
+  document.querySelector<HTMLLinkElement>('link[rel="canonical"]')!.href = canonical;
+  document.querySelector<HTMLMetaElement>('meta[property="og:title"]')!.content = title;
+  document.querySelector<HTMLMetaElement>('meta[property="og:description"]')!.content = description;
+  document.querySelector<HTMLMetaElement>('meta[property="og:url"]')!.content = canonical;
+  document.querySelector<HTMLMetaElement>('meta[name="twitter:title"]')!.content = title;
+  document.querySelector<HTMLMetaElement>('meta[name="twitter:description"]')!.content = description;
+}
+
+function finishRoute(): void {
+  if (!routeShouldFocus) return;
+  routeShouldFocus = false;
+  requestAnimationFrame(() => {
+    const heading = app.querySelector<HTMLElement>('main h1');
+    if (!heading) return;
+    heading.tabIndex = -1;
+    heading.focus({ preventScroll: true });
+    app.querySelector<HTMLElement>('[data-route-status]')!.textContent = `${heading.textContent?.trim() || 'Page'} loaded`;
+  });
+}
+
+function navigate(href: string): void {
+  routeShouldFocus = true;
+  history.pushState({}, '', href);
+  route();
+}
+
+function chrome(content: string): string {
   return `<header class="site-header">
-    <a class="wordmark" href="/" data-route><span class="registration-mark" aria-hidden="true"></span>Graphite <span>/ code atlas</span></a>
-    <nav aria-label="Primary"><a href="/privacy" data-route>Privacy</a><button class="text-button" data-team>${icon('lock')} Team</button>${index && !legal ? '<button class="ink-button compact" data-new>Open another</button>' : ''}</nav>
-  </header>${content}<footer class="site-footer"><span>Source stays on your machine.</span><span>Original illustration generated for Graphite.</span><span><a href="/terms" data-route>Terms</a> · <a href="/privacy" data-route>Privacy</a></span></footer>${updateNotice ? '<div class="update-toast" role="status"><span>A newer Graphite shell is ready.</span><button class="paper-button compact" data-reload>Reload</button></div>' : ''}${teamDialog()}`;
+    <a class="wordmark" href="/" data-route><span class="registration-mark" aria-hidden="true"></span>Graphite <span>/ code graph</span></a>
+    <nav aria-label="Primary"><a href="/?demo=1" data-route>Demo</a><a href="/privacy" data-route>Privacy</a>${index && !demoMode ? '<button class="ink-button compact" data-new>Open another codebase</button>' : ''}</nav>
+  </header>${demoMode ? '<aside class="demo-banner" aria-label="Demo mode"><strong>Demo — sample data, nothing is saved</strong><span><button data-reset-demo>Reset demo</button><button data-start-real>Start for real</button></span></aside>' : ''}${content}<footer class="site-footer"><span>Trace calls through a local codebase.</span><span>Original generated illustration.</span><span><a href="/privacy" data-route>Privacy</a> · <a href="/terms" data-route>Terms</a> · Built by Param Factory · v${BUILD_ID}</span></footer><div class="sr-only" aria-live="polite" data-route-status></div>${updateNotice ? '<div class="update-toast" role="status"><span>A newer Graphite shell is ready.</span><button class="paper-button compact" data-reload>Reload</button></div>' : ''}`;
 }
 
 function renderLanding(): void {
-  document.title = 'Graphite — local code graph explorer';
+  setMeta('Graphite — trace calls in local codebases', 'Trace functions, calls, imports, and source in a local code graph for unfamiliar codebases.', '/');
   app.innerHTML = chrome(`<main id="main" class="landing">
     <section class="hero-grid" aria-labelledby="hero-title">
       <div class="hero-copy">
-        <p class="eyebrow">Local code cartography / v1.0</p>
-        <h1 id="hero-title">Trace the code.<br><span>Keep the source.</span></h1>
-        <p class="lede">Open a JavaScript, TypeScript, Python, or Go project. Follow functions, callers, callees, and imports in one linked workspace—without an upload, account, or IDE plugin.</p>
+        <p class="eyebrow">Local code graph / v${BUILD_ID}</p>
+        <h1 id="hero-title">Trace calls through an unfamiliar codebase.</h1>
+        <p class="lede">For engineers onboarding, debugging, or refactoring, see calls, imports, and source in one local workspace.</p>
         <div class="hero-actions">
-          <button class="ink-button" data-open>${icon('folder')} Open a folder</button>
-          <button class="paper-button" data-demo>${icon('sample')} Explore the sample</button>
+          <a class="ink-button" href="/?demo=1" data-route>${icon('sample')} Try it with sample data</a>
+          <button class="paper-button" data-open>${icon('folder')} Open a folder</button>
         </div>
-        <p class="support-note">Works best in Chrome or Edge. Other browsers can choose a folder through the file picker.</p>
+        <p class="action-note">See a five-file server codebase already mapped.</p>
+        <ul class="hero-facts"><li>Your source stays in this browser.</li><li>The demo opens offline after your first visit.</li><li>Local graphs and JSON export are free.</li></ul>
       </div>
       <figure class="hero-figure">
         <img src="/assets/code-cartography.webp" alt="Abstract halftone map of paper source files connected by red, blue, and black graph nodes" width="1200" height="800" fetchpriority="high" decoding="async">
-        <figcaption><span>Plate 01</span> A codebase, viewed as routes instead of folders.</figcaption>
+        <figcaption><span>Plate 01</span> A codebase shown as linked functions and imports.</figcaption>
       </figure>
     </section>
     <section class="intake" aria-labelledby="intake-title">
-      <div><p class="section-no">01 / Input</p><h2 id="intake-title">Put your repository on the table</h2><p>Folders are read locally and held in memory. Generated files and dependencies are skipped automatically.</p></div>
+      <div><p class="section-no">01 / Open a codebase</p><h2 id="intake-title">Open your codebase</h2><p>Graphite reads selected files in browser memory. It skips named dependency and build folders.</p></div>
       <div class="drop-zone" data-drop tabindex="0" role="button">
-        <span class="drop-icon" aria-hidden="true">↳</span><strong>Drop a folder here</strong><span>or press Enter to choose one</span>
+        <span class="drop-icon" aria-hidden="true">↳</span><strong>Drop a folder here</strong><span>Press Enter to choose a folder.</span>
       </div>
-      <div class="alternate-input"><span>Already indexed?</span><button class="paper-button" data-import>${icon('import')} Import JSON index</button></div>
+      <div class="alternate-input"><span>Already indexed?</span><button class="paper-button" data-import>${icon('import')} Import a Graphite index</button></div>
       <input data-folder-input type="file" hidden multiple aria-label="Choose code files">
       <input data-json-input type="file" hidden accept="application/json,.json" aria-label="Choose Graphite JSON index">
     </section>
-    <section class="proof-strip" aria-label="Product facts"><div><strong>4</strong><span>languages</span></div><div><strong>0</strong><span>source uploads</span></div><div><strong>2</strong><span>graph depths</span></div><div><strong>JSON</strong><span>portable index</span></div></section>
+    <section class="live-preview" aria-labelledby="preview-title"><div><p class="section-no">02 / Working view</p><h2 id="preview-title">Follow one function at a time</h2><p>Select a function to see callers, callees, imports, and its source location together.</p></div><div class="preview-map" aria-label="Preview showing boot linked to createServer, loadConfig, and start"><span class="preview-node selected">boot()</span><span class="preview-node one">createServer()</span><span class="preview-node two">loadConfig()</span><span class="preview-node three">start()</span><i class="preview-line a"></i><i class="preview-line b"></i><i class="preview-line c"></i></div></section>
+    <section class="how-it-works" aria-labelledby="steps-title"><p class="section-no">03 / Method</p><h2 id="steps-title">How Graphite maps a codebase</h2><ol><li><strong>Open a folder.</strong><span>Choose supported source files from your device.</span></li><li><strong>Select a function.</strong><span>Move through linked calls, imports, and source.</span></li><li><strong>Export the index.</strong><span>Save the code graph as a local JSON file.</span></li></ol></section>
+    <section class="limits" aria-labelledby="limits-title"><div><p class="section-no">04 / Boundaries</p><h2 id="limits-title">Know what the graph cannot prove</h2></div><div><p>Cross-file matches are estimates and carry a visible label. Dynamic calls, reflection, generated code, and complex types can be missed.</p><p>No analytics, accounts, hosted source index, external fonts, or third-party scripts run in the free workflow.</p><p><a href="/privacy" data-route>Read the privacy details</a> or <a href="/terms" data-route>read the terms</a>.</p></div></section>
     <div class="sr-only" aria-live="polite">${esc(statusMessage)}</div>
   </main>`);
   bindCommon();
   bindLanding();
+  finishRoute();
 }
 
 function renderLoading(project: string, done = 0, total = 1): void {
+  setMeta(demoMode ? 'Demo — Graphite' : 'Indexing — Graphite', 'Graphite is mapping functions, calls, imports, and source in this browser.', demoMode ? '/demo' : '/');
   const percent = total ? Math.round((done / total) * 100) : 0;
   app.innerHTML = chrome(`<main id="main" class="loading-page"><div class="print-loader" aria-live="polite"><p class="eyebrow">Indexing locally</p><h1>Drawing ${esc(project)}</h1><div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></div><p>${done} of ${total} supported files · ${percent}%</p><small>You can close this tab to stop. No source has left the browser.</small></div></main>`);
   bindCommon();
@@ -154,73 +186,60 @@ function sourceMarkup(symbol: CodeSymbol): string {
 
 function renderWorkspace(): void {
   if (!index) return renderLanding();
-  document.title = `${index.project} — Graphite`;
+  setMeta(demoMode ? 'Demo — Graphite' : `${index.project} — Graphite`, demoMode ? 'Explore a five-file sample codebase in an isolated Graphite demo.' : 'Explore functions, calls, imports, and source in a local Graphite workspace.', demoMode ? '/demo' : '/');
   let selected = index.symbols.find(symbol => symbol.id === selectedId);
   if (!selected) { selected = index.symbols.find(symbol => symbol.kind !== 'module') || index.symbols[0]; selectedId = selected?.id || ''; }
-  if (!selected) return renderError('No symbols found', 'Graphite read the files, but could not find supported definitions. Try a project containing TypeScript, JavaScript, Python, or Go.');
+  if (!selected) return renderError('No symbols found', 'Graphite read the files, but could not find supported definitions. Try a codebase containing TypeScript, JavaScript, Python, or Go.');
   const visibleSymbols = index.symbols.filter(symbol => (`${symbol.name} ${symbol.file}`).toLowerCase().includes(search.toLowerCase())).slice(0, 500);
   const list = visibleSymbols.map(symbol => `<li><button class="symbol-row ${symbol.id === selectedId ? 'active' : ''}" data-symbol="${esc(symbol.id)}"><span class="kind-stamp">${symbol.kind.slice(0, 2).toUpperCase()}</span><span><strong>${esc(symbol.name)}</strong><small>${esc(shortPath(symbol.file))}:${symbol.line}</small></span></button></li>`).join('') || '<li class="empty-list">No symbols match. Try a file name.</li>';
   app.innerHTML = chrome(`<main id="main" class="workspace">
-    <div class="project-bar"><div><span class="indexed-dot" aria-hidden="true"></span><strong>${esc(index.project)}</strong><span>${index.stats.files} files · ${index.stats.symbols} symbols · ${index.stats.edges} edges</span></div><div><span class="heuristic-badge" title="Cross-file name matching may include false edges">≈ Heuristic resolution</span><button class="paper-button compact" data-review>${teamUnlocked() ? icon('export') : icon('lock')} Review packet</button><button class="paper-button compact" data-export>${icon('export')} Export JSON</button></div></div>
+    <div class="project-bar"><div><span class="indexed-dot" aria-hidden="true"></span><strong>${esc(index.project)}</strong><span>${index.stats.files} files · ${index.stats.symbols} symbols · ${index.stats.edges} relationships</span></div><div><span class="heuristic-badge" title="Cross-file name matching may include false relationships">≈ Estimated cross-file matches</span><button class="paper-button compact" data-export>${icon('export')} Export Graphite index</button></div></div>
     <div class="mobile-tabs" role="tablist" aria-label="Workspace panes"><button role="tab" aria-selected="${activePane === 'symbols'}" data-pane="symbols">Symbols</button><button role="tab" aria-selected="${activePane === 'graph'}" data-pane="graph">Graph</button><button role="tab" aria-selected="${activePane === 'source'}" data-pane="source">Source</button></div>
     <div class="work-grid" data-active-pane="${activePane}">
       <aside class="symbol-pane" aria-label="Symbol index"><div class="pane-head"><p class="section-no">Symbols / ${visibleSymbols.length}</p><label class="search-box">${icon('search')}<span class="sr-only">Search symbols</span><input data-search type="search" value="${esc(search)}" placeholder="Function, class, or file" autocomplete="off"><kbd>/</kbd></label></div><ul class="symbol-list">${list}</ul></aside>
       <section class="graph-pane" aria-labelledby="focus-title"><div class="pane-head focus-head"><div><p class="section-no">Focus graph</p><h1 id="focus-title">${esc(selected.name)}</h1><p>${esc(selected.kind)} · ${esc(selected.file)}:${selected.line}</p></div><label>Depth <select data-depth aria-label="Graph depth"><option value="1" ${depth === 1 ? 'selected' : ''}>1 hop</option><option value="2" ${depth === 2 ? 'selected' : ''}>2 hops</option></select></label></div>${graphMarkup()}</section>
       <section class="source-pane" aria-labelledby="source-title"><div class="pane-head"><div><p class="section-no">Source</p><h2 id="source-title">${esc(shortPath(selected.file))}</h2></div><a class="line-link" href="#L${selected.line}">Line ${selected.line}</a></div><div class="source-code" role="region" aria-label="Source for ${esc(selected.file)}">${sourceMarkup(selected)}</div></section>
     </div>
-    <div class="status-ribbon" role="status"><span>Indexed in ${index.stats.elapsedMs} ms</span><span>${navigator.onLine ? 'Offline-ready' : 'You are offline — local tools still work'}</span><span><kbd>/</kbd> search · <kbd>↑↓</kbd> navigate</span></div>
+    <div class="status-ribbon" role="status"><span>${index.stats.files} files indexed</span><span>${navigator.onLine ? 'Available offline after this visit' : 'Offline — local tools still work'}</span><span><kbd>/</kbd> search · <kbd>↑↓</kbd> navigate</span></div>
   </main>`);
   bindCommon(); bindWorkspace();
-  requestAnimationFrame(() => document.getElementById(`L${selected!.line}`)?.scrollIntoView({ block: 'center' }));
+  if (activePane === 'source' || innerWidth > 1000) requestAnimationFrame(() => {
+    const line = document.getElementById(`L${selected!.line}`);
+    const source = line?.closest<HTMLElement>('.source-code');
+    if (line && source) source.scrollTop = Math.max(0, line.offsetTop - source.clientHeight / 2);
+  });
+  finishRoute();
 }
 
 function legalPage(kind: 'privacy' | 'terms'): void {
   const privacy = kind === 'privacy';
-  document.title = `${privacy ? 'Privacy' : 'Terms'} — Graphite`;
-  app.innerHTML = chrome(`<main id="main" class="legal-page"><a href="/" data-route class="back-link">← Back to Graphite</a><p class="eyebrow">Policy / effective 27 August 2026</p><h1>${privacy ? 'Privacy, by construction.' : 'Plain terms for a local tool.'}</h1>${privacy ? `
-    <h2>Your source code</h2><p>Graphite reads selected files in your browser memory. Source code, file names, indexes, and searches are not uploaded to Graphite or Sociobot. Closing the tab clears the active index unless you export it.</p>
-    <h2>Local data</h2><p>If you purchase or restore Team, the license token and a daily verification timestamp are stored in localStorage. The service worker stores the app shell for offline use. You can clear both through your browser settings.</p>
-    <h2>Billing</h2><p>Checkout and license verification are handled by Sociobot, with Dodo as merchant of record. Graphite sends the license token only when verifying it. We run no third-party analytics, advertising pixels, or tracking scripts.</p>
-    <h2>Your choices</h2><p>Use all free local exploration features without an account. Do not select repositories you are not authorized to inspect. Questions: <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a>.</p>` : `
+  setMeta(`${privacy ? 'Privacy' : 'Terms'} — Graphite`, privacy ? 'How Graphite handles source files, browser storage, and network requests.' : 'Terms for using the local Graphite code graph explorer.', `/${kind}`);
+  app.innerHTML = chrome(`<main id="main" class="legal-page"><a href="/" data-route class="back-link">← Back to Graphite</a><p class="eyebrow">Policy / effective 28 August 2026</p><h1>${privacy ? 'How Graphite handles your data' : 'Terms for using Graphite'}</h1>${privacy ? `
+    <h2>Your source code</h2><p>Graphite reads selected files in browser memory. It does not upload source, file names, indexes, or searches. Closing or reloading the tab clears the active index unless you export it.</p>
+    <h2>Demo data</h2><p>The demo uses bundled sample files in memory. It does not read or write production storage. Reset demo restores the original five files and selected function.</p>
+    <h2>Offline storage</h2><p>The service worker stores the app files needed for offline use. It does not store an opened codebase. Clear site data in your browser to remove the offline files.</p>
+    <h2>Network requests</h2><p>The free workflow uses no analytics, advertising, hosted source index, external fonts, or third-party scripts.</p>
+    <h2>Your choices</h2><p>Use the local explorer without an account. Select only codebases you are allowed to inspect. Questions: <a href="mailto:privacy@sociobot.in">privacy@sociobot.in</a>.</p>` : `
     <h2>Use</h2><p>Graphite is provided under the MIT License. You may use it to inspect code you own or are authorized to access. Do not use it to violate law or another party’s rights.</p>
-    <h2>Accuracy</h2><p>Relationship resolution is heuristic. Dynamic calls, aliases, reflection, generated code, and complex type dispatch can be missed or misidentified. Verify graph findings against source code before making consequential changes.</p>
-    <h2>Team purchase</h2><p>Team is a one-time license unlock sold through Sociobot, with Dodo as merchant of record. The checkout page states the current price and refund terms. Refunds revoke the license automatically. Accessibility, local exploration, and JSON export remain free.</p>
-    <h2>Warranty</h2><p>The software is provided “as is,” without warranty. To the extent permitted by law, the authors are not liable for losses arising from its use.</p>`}</main>`, true);
+    <h2>Accuracy</h2><p>Cross-file relationships are estimates. Dynamic calls, aliases, reflection, generated code, and complex types can be missed or misidentified. Check the source before changing code.</p>
+    <h2>Free access</h2><p>Local exploration, accessibility features, and Graphite index export are free. No paid purchase is offered in this release.</p>
+    <h2>Warranty</h2><p>The software is provided “as is,” without warranty. To the extent permitted by law, the authors are not liable for losses arising from its use.</p>`}</main>`);
   bindCommon();
+  finishRoute();
 }
 
 function renderError(title: string, message: string): void {
+  setMeta('Error — Graphite', 'Graphite could not open this codebase. Choose another folder or try the sample data.', '/');
   app.innerHTML = chrome(`<main id="main" class="error-page"><p class="eyebrow">Index interrupted</p><h1>${esc(title)}</h1><p>${esc(message)}</p><div><button class="ink-button" data-open>${icon('folder')} Try another folder</button><button class="paper-button" data-demo>${icon('sample')} Open sample</button></div></main>`);
-  bindCommon(); bindLanding();
-}
-
-function teamDialog(): string {
-  const token = localStorage.getItem(`sb_license:${PRODUCT}`);
-  const verdict = licenseVerdict();
-  const unlocked = Boolean(verdict?.valid);
-  return `<dialog class="team-dialog" aria-labelledby="team-title"><button class="dialog-close" data-dialog-close aria-label="Close Team dialog">${icon('close')}</button><p class="eyebrow">Team license</p><h2 id="team-title">${unlocked ? 'Team is unlocked.' : 'Carry a shared trail.'}</h2><p>${unlocked ? 'This browser has an active Team license. Review-packet export is ready in the workspace.' : 'Team adds a standalone HTML review packet for the focused symbol, its source location, and visible relationships. Local exploration and JSON export always stay free.'}</p>${verdict && !verdict.valid ? '<p class="license-notice">License no longer active. Restore it below or purchase a new license.</p>' : ''}<div class="price"><strong>$24</strong><span>one-time purchase<br>for one user</span></div><a class="ink-button link-button" href="${BILLING_BASE}/products/${PRODUCT}/checkout">Buy Team</a><form data-license-form><label for="license">Have a license? Paste it here</label><div><input id="license" name="license" value="${token ? esc(token) : ''}" autocomplete="off" spellcheck="false"><button class="paper-button" type="submit">Verify license</button></div><p data-license-status aria-live="polite"></p></form><small>Sociobot / Dodo is the merchant of record. Refunds are handled there. <a href="/privacy" data-route>Privacy</a> · <a href="/terms" data-route>Terms</a></small></dialog>`;
+  bindCommon(); bindLanding(); finishRoute();
 }
 
 function bindCommon(): void {
-  app.querySelectorAll<HTMLAnchorElement>('[data-route]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); history.pushState({}, '', link.pathname); route(); }));
-  app.querySelectorAll<HTMLButtonElement>('[data-team]').forEach(button => button.addEventListener('click', () => openTeam(button)));
-  app.querySelector<HTMLButtonElement>('[data-new]')?.addEventListener('click', () => { index = null; selectedId = ''; renderLanding(); });
+  app.querySelectorAll<HTMLAnchorElement>('[data-route]').forEach(link => link.addEventListener('click', event => { event.preventDefault(); navigate(`${link.pathname}${link.search}`); }));
+  app.querySelector<HTMLButtonElement>('[data-new]')?.addEventListener('click', () => { index = null; selectedId = ''; navigate('/'); });
+  app.querySelector<HTMLButtonElement>('[data-reset-demo]')?.addEventListener('click', () => resetDemo(true));
+  app.querySelector<HTMLButtonElement>('[data-start-real]')?.addEventListener('click', () => { demoMode = false; index = null; selectedId = ''; search = ''; activePane = 'graph'; navigate('/'); });
   app.querySelector<HTMLButtonElement>('[data-reload]')?.addEventListener('click', () => location.reload());
-  const dialog = app.querySelector<HTMLDialogElement>('.team-dialog');
-  dialog?.querySelector<HTMLButtonElement>('[data-dialog-close]')?.addEventListener('click', () => dialog.close());
-  dialog?.addEventListener('click', event => { if (event.target === dialog) dialog.close(); });
-  dialog?.querySelector<HTMLFormElement>('[data-license-form]')?.addEventListener('submit', async event => {
-    event.preventDefault(); const form = event.currentTarget as HTMLFormElement; const token = new FormData(form).get('license')?.toString().trim() || '';
-    const output = form.querySelector<HTMLElement>('[data-license-status]')!;
-    if (!token) { output.textContent = 'Paste a license token first.'; return; }
-    localStorage.setItem(`sb_license:${PRODUCT}`, token); output.textContent = 'Verifying…'; await verifyLicense(token, output);
-  });
-}
-
-function openTeam(opener: HTMLElement): void {
-  const dialog = app.querySelector<HTMLDialogElement>('.team-dialog')!;
-  dialog.showModal(); dialog.querySelector<HTMLButtonElement>('[data-dialog-close]')?.focus();
-  dialog.addEventListener('close', () => opener.focus(), { once: true });
 }
 
 function bindLanding(): void {
@@ -230,7 +249,7 @@ function bindLanding(): void {
   app.querySelectorAll<HTMLElement>('[data-open], [data-drop]').forEach(el => el.addEventListener('click', choose));
   app.querySelector<HTMLElement>('[data-drop]')?.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); choose(); } });
   input?.addEventListener('change', () => readFileList(input.files));
-  app.querySelector<HTMLButtonElement>('[data-demo]')?.addEventListener('click', async () => analyze(demoFiles, 'Graphite sample'));
+  app.querySelector<HTMLButtonElement>('[data-demo]')?.addEventListener('click', () => navigate('/?demo=1'));
   const jsonInput = app.querySelector<HTMLInputElement>('[data-json-input]');
   app.querySelector<HTMLButtonElement>('[data-import]')?.addEventListener('click', () => jsonInput?.click());
   jsonInput?.addEventListener('change', () => importIndex(jsonInput.files?.[0]));
@@ -250,8 +269,19 @@ function bindWorkspace(): void {
   searchInput?.addEventListener('input', () => { search = searchInput.value; renderWorkspace(); app.querySelector<HTMLInputElement>('[data-search]')?.focus(); });
   app.querySelector<HTMLSelectElement>('[data-depth]')?.addEventListener('change', event => { depth = Number((event.target as HTMLSelectElement).value); renderWorkspace(); });
   app.querySelector<HTMLButtonElement>('[data-export]')?.addEventListener('click', exportIndex);
-  app.querySelector<HTMLButtonElement>('[data-review]')?.addEventListener('click', event => teamUnlocked() ? exportReviewPacket() : openTeam(event.currentTarget as HTMLElement));
-  app.querySelectorAll<HTMLButtonElement>('[data-pane]').forEach(button => button.addEventListener('click', () => { activePane = button.dataset.pane as typeof activePane; renderWorkspace(); }));
+  const tabs = [...app.querySelectorAll<HTMLButtonElement>('[data-pane]')];
+  tabs.forEach(button => {
+    button.addEventListener('click', () => { activePane = button.dataset.pane as typeof activePane; renderWorkspace(); });
+    button.addEventListener('keydown', event => {
+      if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const current = tabs.indexOf(button);
+      const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : (current + (event.key === 'ArrowLeft' ? -1 : 1) + tabs.length) % tabs.length;
+      activePane = tabs[next].dataset.pane as typeof activePane;
+      renderWorkspace();
+      app.querySelector<HTMLButtonElement>(`[data-pane="${activePane}"]`)?.focus();
+    });
+  });
 }
 
 function selectSymbol(id: string): void { selectedId = id; if (innerWidth < 760) activePane = 'graph'; renderWorkspace(); }
@@ -293,7 +323,7 @@ async function readFileList(list: FileList | null): Promise<void> {
   if (candidates.exceeded) { renderError('Folder is too large', directoryLimitMessage()); return; }
   const files: FileInput[] = [];
   for (const candidate of candidates.files) files.push({ path: candidate.path, content: await candidate.file.text() });
-  await analyze(files, files[0]?.path.split('/')[0] || 'Local project');
+  await analyze(files, files[0]?.path.split('/')[0] || 'Local codebase');
 }
 
 async function readDroppedItems(data: DataTransfer | null): Promise<void> {
@@ -322,7 +352,7 @@ async function readDroppedItems(data: DataTransfer | null): Promise<void> {
   entries.sort((left, right) => left.name < right.name ? -1 : left.name > right.name ? 1 : 0);
   for (const entry of entries) { await walk(entry); if (exceeded) break; }
   if (exceeded) { renderError('Folder is too large', directoryLimitMessage()); return; }
-  await analyze(files, entries[0]?.name || 'Dropped project');
+  await analyze(files, entries[0]?.name || 'Dropped codebase');
 }
 
 async function analyze(files: FileInput[], project: string): Promise<void> {
@@ -343,37 +373,42 @@ function exportIndex(): void {
   if (!index) return; const blob = new Blob([JSON.stringify(index, null, 2)], { type: 'application/json' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${index.project.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'code'}-graph.json`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function exportReviewPacket(): void {
-  if (!index || !teamUnlocked()) return;
-  const symbol = index.symbols.find(item => item.id === selectedId); if (!symbol) return;
-  const { edges } = relationData();
-  const rows = edges.map(edge => { const from = index!.symbols.find(item => item.id === edge.from)!; const to = index!.symbols.find(item => item.id === edge.to)!; return `<tr><td>${esc(edge.kind)}</td><td>${esc(from.name)}</td><td>→</td><td>${esc(to.name)}</td><td>${esc(edge.confidence)}</td></tr>`; }).join('');
-  const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>${esc(symbol.name)} review trail</title><style>body{max-width:900px;margin:48px auto;padding:0 24px;background:#f2eedf;color:#171713;font:16px/1.5 Arial,sans-serif}h1{font-size:48px;text-transform:uppercase;border-bottom:3px solid}code,table{font-family:monospace}table{width:100%;border-collapse:collapse}th,td{padding:10px;border:1px solid;text-align:left}.note{border-left:6px solid #d53a24;padding:12px;background:#fffdf5}</style></head><body><p>GRAPHITE / REVIEW TRAIL</p><h1>${esc(symbol.name)}</h1><p><strong>${esc(symbol.kind)}</strong> · <code>${esc(symbol.file)}:${symbol.line}</code></p><p class="note">Relationship resolution is heuristic. Verify each edge against the source before changing code.</p><h2>Visible relationships</h2><table><thead><tr><th>Kind</th><th>From</th><th></th><th>To</th><th>Confidence</th></tr></thead><tbody>${rows || '<tr><td colspan="5">No visible relationships.</td></tr>'}</tbody></table><p>Generated locally by Graphite on ${new Date().toLocaleString()}.</p></body></html>`;
-  const blob = new Blob([html], { type: 'text/html' }); const url = URL.createObjectURL(blob); const link = document.createElement('a'); link.href = url; link.download = `${symbol.name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}-review.html`; link.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-async function verifyLicense(token: string, output?: HTMLElement): Promise<void> {
+async function resetDemo(focusReset = false): Promise<void> {
+  if (demoStarting) return;
+  demoStarting = true;
+  index = null; selectedId = ''; search = ''; depth = 1; activePane = 'graph';
   try {
-    const response = await fetch(`${BILLING_BASE}/products/${PRODUCT}/verify?license=${encodeURIComponent(token)}`);
-    const verdict = await response.json() as { valid: boolean; reason: string; expires_at?: string };
-    localStorage.setItem(`sb_license_verdict:${PRODUCT}`, JSON.stringify({ ...verdict, checkedAt: Date.now() }));
-    if (output) output.textContent = verdict.valid ? 'License verified. Team is active.' : `License not active (${verdict.reason.replace('_', ' ')}).`;
-  } catch { if (output) output.textContent = 'Could not verify while offline. Your free workspace is unaffected.'; }
+    await analyze(demoFiles.map(file => ({ ...file })), 'Five-file server demo');
+    if (focusReset) app.querySelector<HTMLButtonElement>('[data-reset-demo]')?.focus();
+  } finally { demoStarting = false; }
 }
 
-function processLicense(): void {
-  const url = new URL(location.href); const incoming = url.searchParams.get('license');
-  if (incoming) { localStorage.setItem(`sb_license:${PRODUCT}`, incoming); url.searchParams.delete('license'); history.replaceState({}, '', url); verifyLicense(incoming); return; }
-  const token = localStorage.getItem(`sb_license:${PRODUCT}`); const checkedAt = licenseVerdict()?.checkedAt || 0; if (token && Date.now() - checkedAt > 86_400_000) verifyLicense(token);
+function renderNotFound(): void {
+  setMeta('Page not found — Graphite', 'This Graphite page does not exist. Return home or open the sample codebase.', '/404');
+  app.innerHTML = chrome(`<main id="main" class="not-found"><div class="not-found-mark" aria-hidden="true">404</div><p class="eyebrow">Unresolved path</p><h1>This page is not in the graph</h1><p>The address does not match a Graphite page.</p><div><a class="ink-button" href="/" data-route>Return home</a><a class="paper-button" href="/?demo=1" data-route>Try sample data</a></div></main>`);
+  bindCommon(); finishRoute();
 }
 
-function route(): void { const path = location.pathname; if (path === '/privacy') legalPage('privacy'); else if (path === '/terms') legalPage('terms'); else index ? renderWorkspace() : renderLanding(); }
+function route(): void {
+  const path = location.pathname.replace(/\/+$/, '') || '/';
+  const requestedDemo = path === '/demo' || (path === '/' && new URL(location.href).searchParams.get('demo') === '1');
+  if (requestedDemo) {
+    demoMode = true;
+    if (index) renderWorkspace(); else void resetDemo();
+    return;
+  }
+  if (demoMode) { demoMode = false; index = null; selectedId = ''; search = ''; activePane = 'graph'; }
+  if (path === '/privacy') legalPage('privacy');
+  else if (path === '/terms') legalPage('terms');
+  else if (path === '/') index ? renderWorkspace() : renderLanding();
+  else renderNotFound();
+}
 
-window.addEventListener('popstate', route);
+window.addEventListener('popstate', () => { routeShouldFocus = true; route(); });
 window.addEventListener('keydown', event => { if (event.key === '/' && index && !(event.target instanceof HTMLInputElement)) { event.preventDefault(); app.querySelector<HTMLInputElement>('[data-search]')?.focus(); } });
 window.addEventListener('online', () => index && renderWorkspace());
 window.addEventListener('offline', () => index && renderWorkspace());
-processLicense(); route();
+route();
 if ('serviceWorker' in navigator && import.meta.env.PROD) window.addEventListener('load', () => {
   let hadController = Boolean(navigator.serviceWorker.controller);
   navigator.serviceWorker.addEventListener('controllerchange', () => {
