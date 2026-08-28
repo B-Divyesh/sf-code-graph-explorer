@@ -69,9 +69,16 @@ npm run build
 
 ## Deployment
 
-Static deployment target: `https://code-graph-explorer.sociobot.in` using
-`/opt/fleet/lib/deploy-static.sh code-graph-explorer dist` after the work-order
-build command `npm ci && npm test && npm run build`.
+Deployed the verified `dist/` artifact to Azure Static Web Apps with
+`/opt/fleet/lib/deploy-static.sh code-graph-explorer dist`. Deployment id:
+`328a5d50-1a8c-4ab8-b36c-95107e9bb0b2`. Azure reported `Succeeded`; the custom
+domain was `Ready` and returned HTTPS 200.
+
+Post-deploy verification at `https://code-graph-explorer.sociobot.in` passed:
+zero browser console/page errors, zero axe violations, the 390 px pane sequence,
+direct demo, offline demo reload, and Privacy/Terms/404 titles. No off-origin
+request occurred. The live entry JavaScript SHA-256 exactly matched `dist/`:
+`7f6ef53f79ca890e807fc268ba02b2981aba6c1486b378d74f9aec49259b876d`.
 
 ## Known gaps
 
