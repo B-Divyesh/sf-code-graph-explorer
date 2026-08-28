@@ -40,7 +40,7 @@ deployed build. No finding is deferred.
 
 ## Production evidence
 
-- Deployment ID: `672a6923-4df3-4bae-8595-52f3cc33cc9b`.
+- Final deployment ID: `73b5c045-12fb-4004-b9da-348684ec2f7b`.
 - `verify-url.sh`: HTTPS 200, correct title/lang/main/h1/alt labels, zero
   console errors.
 - Local-to-live SHA-256 parity: `index.html`

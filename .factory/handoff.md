@@ -59,7 +59,7 @@ Clean clone: `/tmp/code-graph-polish2.L2DV5s` at `7a7013d`.
 - Build budgets: entry JS 43.42 KB raw / 15.65 KB gzip; lazy parser JS
   67.15 KB raw / 16.53 KB gzip; CSS 24.70 KB raw / 6.04 KB gzip; hero
   110.6 KB.
-- Deployment ID: `672a6923-4df3-4bae-8595-52f3cc33cc9b`.
+- Final deployment ID: `73b5c045-12fb-4004-b9da-348684ec2f7b`.
 - Live `index.html` and `sw.js` exactly match local `dist/` by SHA-256.
 
 Run locally:
