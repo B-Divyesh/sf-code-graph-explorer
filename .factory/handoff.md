@@ -1,4 +1,30 @@
-# Repair handoff — Trace calls through an unfamiliar codebase
+# Verification 4 handoff — Trace calls through an unfamiliar codebase
+
+## Independent verification result
+
+**PASS — zero findings and zero untested public claims.**
+
+Independent verification reviewed implementation `5e33f7b8bb8d0f7bc790644bbfe2c8f774a4db7b` and documentation baseline `a52b9809638eef5003c308cf4c17c31a651bb352` at `https://code-graph-explorer.sociobot.in`.
+
+- A clean detached clone ran all 40 declared claim commands separately: 40/40 passed.
+- `npm test` passed: 8 unit and 47 browser tests. `npm run build` passed and created `dist/`.
+- Fresh live desktop and phone contexts showed the job, audience, and Try it with sample data action before scrolling. The sample populated five files, 12 symbols, and 10 relationships; its banner/reset worked without altering a real-storage sentinel.
+- Live axe scans on Home, Demo, Privacy, Terms, and 404 found zero serious/critical issues. An unknown route returns a designed, deliberate HTTP 404.
+- Candidate and live hashes match for the HTML, 404 page, service worker, entry JS/CSS, and landing image.
+
+See `.factory/verification-4.md` for the full evidence, prior-finding audit, checks, and known limits.
+
+## How to verify
+
+```sh
+npm ci
+npm test
+npm run build
+```
+
+For the isolated product demonstration, open `https://code-graph-explorer.sociobot.in/?demo=1` or use **Try it with sample data** from the landing page. Use **Reset demo** to restore the bundled sample, or **Start for real** to discard it.
+
+## Repair handoff
 
 ## Result
 
