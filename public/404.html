@@ -29,8 +29,9 @@
       .skip { position: absolute; left: 12px; top: -60px; background: #fffdf5; border: 2px solid #171713; padding: 10px; font-weight: 700; }
       .skip:focus { top: 12px; }
       header, footer { padding: 18px clamp(20px, 5vw, 72px); font-size: 14px; }
-      header { min-height: 68px; display: flex; align-items: center; border-bottom: 2px solid #171713; background: #fffdf5; font-weight: 800; }
+      header { min-height: 68px; display: flex; align-items: center; justify-content: space-between; gap: 20px; border-bottom: 2px solid #171713; background: #fffdf5; font-weight: 800; }
       header span { color: #5b594f; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: 12px; }
+      nav { display: flex; gap: 18px; font-size: 13px; }
       main { min-height: calc(100vh - 160px); padding: clamp(56px, 13vw, 180px) 20px; display: grid; place-items: center; text-align: center; overflow: hidden; }
       article { position: relative; max-width: 760px; }
       .mark { position: absolute; z-index: -1; top: -120px; left: 50%; color: rgba(213, 58, 36, .12); font: 900 clamp(180px, 38vw, 520px)/.7 Arial Narrow, Arial, sans-serif; letter-spacing: -.12em; transform: translateX(-50%) rotate(-4deg); }
@@ -45,7 +46,7 @@
   </head>
   <body>
     <a class="skip" href="#main">Skip to main content</a>
-    <header><a href="/">Graphite <span>/ code graph</span></a></header>
+    <header><a href="/">Graphite <span>/ code graph</span></a><nav aria-label="Primary"><a href="/?demo=1">Demo</a><a href="/privacy">Privacy</a></nav></header>
     <main id="main"><article>
       <div class="mark" aria-hidden="true">404</div>
       <p class="eyebrow">Page error</p>
