@@ -61,9 +61,10 @@ writes the static artifact to `dist/`.
 
 ## Deploy the static artifact
 
-Deploy the `dist/` folder to Azure Static Web Apps. The repository includes the
-SPA fallback, security headers, cache rules, service worker, sitemap, and robots
-file. Do not deploy billing, DNS, or infrastructure from this repository.
+Deploy the `dist/` folder to Azure Static Web Apps. The repository includes
+real SPA route rewrites, a 404 override, security headers, cache rules, service
+worker, sitemap, and robots file. Do not deploy billing, DNS, or infrastructure
+from this repository.
 
 ## License
 

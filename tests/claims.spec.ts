@@ -319,8 +319,8 @@ test('@claim:no-third-party-runtime keeps the free workflow same-origin', async 
 
 test('@claim:build-contract emits the Azure static site files', async () => {
   for (const file of ['dist/index.html', 'dist/404.html', 'dist/sw.js', 'dist/staticwebapp.config.json', 'dist/sitemap.xml', 'dist/robots.txt']) await expect(readFile(file, 'utf8')).resolves.toBeTruthy();
-  const swa = JSON.parse(await readFile('dist/staticwebapp.config.json', 'utf8')) as { navigationFallback: { rewrite: string }; globalHeaders: Record<string, string>; routes: Array<{ route: string; headers: Record<string, string> }>; responseOverrides: { '404': { rewrite: string } } };
-  expect(swa.navigationFallback.rewrite).toBe('/index.html');
+  const swa = JSON.parse(await readFile('dist/staticwebapp.config.json', 'utf8')) as { globalHeaders: Record<string, string>; routes: Array<{ route: string; headers?: Record<string, string>; rewrite?: string }>; responseOverrides: { '404': { rewrite: string } } };
+  for (const route of ['/demo', '/privacy', '/terms']) expect(swa.routes).toContainEqual({ route, rewrite: '/index.html' });
   expect(swa.globalHeaders).toMatchObject({ 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Permissions-Policy': 'camera=(), microphone=(), geolocation=()' });
   expect(swa.globalHeaders['Content-Security-Policy']).toContain("default-src 'self'");
   expect(swa.routes).toContainEqual({ route: '/wasm/*', headers: { 'cache-control': 'public, max-age=604800, must-revalidate' } });
