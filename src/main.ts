@@ -110,7 +110,7 @@ function renderLanding(): void {
       </div>
       <figure class="hero-figure">
         <img src="/assets/code-cartography.webp" alt="Abstract halftone map of paper source files connected by red, blue, and black graph nodes" width="1200" height="800" fetchpriority="high" decoding="async">
-        <figcaption><span>Plate 01</span> A codebase shown as linked functions and imports.</figcaption>
+        <figcaption><span>Code graph example</span> A codebase shown as linked functions and imports.</figcaption>
       </figure>
     </section>
     <section class="intake" aria-labelledby="intake-title">
@@ -136,7 +136,7 @@ function renderLanding(): void {
 function renderLoading(project: string, done = 0, total = 1): void {
   setMeta(demoMode ? 'Demo — Graphite' : 'Indexing — Graphite', 'Graphite is mapping functions, calls, imports, and source in this browser.', demoMode ? '/demo' : '/');
   const percent = total ? Math.round((done / total) * 100) : 0;
-  app.innerHTML = chrome(`<main id="main" class="loading-page"><div class="print-loader" aria-live="polite"><p class="eyebrow">Indexing locally</p><h1>Drawing ${esc(project)}</h1><div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></div><p>${done} of ${total} supported files · ${percent}%</p><small>You can close this tab to stop. No source has left the browser.</small></div></main>`);
+  app.innerHTML = chrome(`<main id="main" class="loading-page"><div class="print-loader" aria-live="polite"><p class="eyebrow">Indexing locally</p><h1>Indexing ${esc(project)}</h1><div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><span style="width:${percent}%"></span></div><p>${done} of ${total} supported files · ${percent}%</p><small>You can close this tab to stop. No source has left the browser.</small></div></main>`);
   bindCommon();
 }
 
@@ -219,7 +219,7 @@ function renderWorkspace(): void {
       <section class="graph-pane" aria-labelledby="focus-title"><div class="pane-head focus-head"><div><p class="section-no">Focus graph</p><h1 id="focus-title">${esc(selected.name)}</h1><p>${esc(selected.kind)} · ${esc(selected.file)}:${selected.line}</p></div><label>Depth <select data-depth aria-label="Graph depth"><option value="1" ${depth === 1 ? 'selected' : ''}>1 hop</option><option value="2" ${depth === 2 ? 'selected' : ''}>2 hops</option></select></label></div>${graphMarkup()}</section>
       <section class="source-pane" aria-labelledby="source-title"><div class="pane-head"><div><p class="section-no">Source</p><h2 id="source-title">${esc(shortPath(selected.file))}</h2></div><a class="line-link" href="#L${selected.line}">Line ${selected.line}</a></div><div class="source-code" role="region" aria-label="Source for ${esc(selected.file)}">${sourceMarkup(selected)}</div></section>
     </div>
-    <div class="status-ribbon" role="status"><span>${index.stats.files} files indexed</span><span>${navigator.onLine ? 'Available offline after this visit' : 'Offline — local tools still work'}</span><span><kbd>/</kbd> search · <kbd>↑↓</kbd> navigate</span></div>
+    <div class="status-ribbon" role="status"><span>${index.stats.files} files indexed</span><span>${navigator.onLine ? 'App shell is available offline after this visit. Opened source is not saved.' : 'Offline — open a codebase to continue'}</span><span><kbd>/</kbd> search · <kbd>↑↓</kbd> navigate</span></div>
   </main>`);
   bindCommon(); bindWorkspace();
   if (activePane === 'source' || innerWidth > 1000) requestAnimationFrame(() => {
@@ -259,7 +259,7 @@ function legalPage(kind: 'privacy' | 'terms'): void {
 
 function renderError(title: string, message: string): void {
   setMeta('Error — Graphite', 'Graphite could not open this codebase. Choose another folder or try the sample data.', '/');
-  app.innerHTML = chrome(`<main id="main" class="error-page"><p class="eyebrow">Index interrupted</p><h1>${esc(title)}</h1><p>${esc(message)}</p><div><button class="ink-button" data-open>${icon('folder')} Try another folder</button><button class="paper-button" data-demo>${icon('sample')} Open sample</button></div></main>`);
+  app.innerHTML = chrome(`<main id="main" class="error-page"><p class="eyebrow">Could not open codebase</p><h1>${esc(title)}</h1><p>${esc(message)}</p><div><button class="ink-button" data-open>${icon('folder')} Try another folder</button><button class="paper-button" data-demo>${icon('sample')} Open sample</button></div><input data-folder-input type="file" hidden multiple aria-label="Choose code files"></main>`);
   bindCommon(); bindLanding(); finishRoute();
 }
 
@@ -270,7 +270,7 @@ function teamDialog(): string {
   const stateCopy = unlocked
     ? 'This browser can export standalone review packets from real codebases.'
     : 'Team adds a standalone HTML packet for the focused symbol, source location, and visible relationships.';
-  return `<dialog class="team-dialog" aria-labelledby="team-title"><button class="dialog-close" data-dialog-close aria-label="Close Team export dialog">${icon('close')}</button><p class="eyebrow">Team review export</p><h2 id="team-title">${unlocked ? 'Team is active' : 'Share the path you traced'}</h2><p>${stateCopy}</p>${verdict && !verdict.valid ? '<p class="license-notice">This license is not active. Paste another license or buy Team.</p>' : ''}<div class="price"><strong>$24</strong><span>One-time purchase<br>for one user</span></div><a class="ink-button link-button" href="${BILLING_BASE}/products/${PRODUCT}/checkout">Buy Team at checkout <span aria-hidden="true">↗</span></a><form data-license-form><label for="license">Have a license? Paste it here</label><div><input id="license" name="license" value="${esc(token)}" autocomplete="off" spellcheck="false"><button class="paper-button" type="submit">Verify license</button></div><p data-license-status aria-live="polite">${esc(licenseMessage)}</p></form>${token ? '<button class="text-button remove-license" data-remove-license>Remove saved license</button>' : ''}<small>Sociobot handles checkout. Dodo is the merchant of record and handles refunds. <a href="/privacy" data-route>Privacy</a> · <a href="/terms" data-route>Terms</a></small></dialog>`;
+  return `<dialog class="team-dialog" aria-labelledby="team-title"><button class="dialog-close" data-dialog-close aria-label="Close Team export dialog">${icon('close')}</button><p class="eyebrow">Team review export</p><h2 id="team-title">${unlocked ? 'Team is active' : 'Export a review packet'}</h2><p>${stateCopy}</p>${verdict && !verdict.valid ? '<p class="license-notice">This license is not active. Paste another license or buy Team.</p>' : ''}<div class="price"><strong>$24</strong><span>One-time purchase<br>for one user</span></div><a class="ink-button link-button" href="${BILLING_BASE}/products/${PRODUCT}/checkout">Buy Team at checkout <span aria-hidden="true">↗</span></a><form data-license-form><label for="license">Have a license? Paste it here</label><div><input id="license" name="license" value="${esc(token)}" autocomplete="off" spellcheck="false"><button class="paper-button" type="submit">Verify license</button></div><p data-license-status aria-live="polite">${esc(licenseMessage)}</p></form>${token ? '<button class="text-button remove-license" data-remove-license>Remove saved license</button>' : ''}<small>Sociobot handles checkout. Dodo is the merchant of record and handles refunds. <a href="/privacy" data-route>Privacy</a> · <a href="/terms" data-route>Terms</a></small></dialog>`;
 }
 
 function openTeam(opener: HTMLElement): void {
@@ -514,7 +514,7 @@ async function resetDemo(focusReset = false): Promise<void> {
 
 function renderNotFound(): void {
   setMeta('Page not found — Graphite', 'This Graphite page does not exist. Return home or open the sample codebase.', '/404');
-  app.innerHTML = chrome(`<main id="main" class="not-found"><div class="not-found-mark" aria-hidden="true">404</div><p class="eyebrow">Unresolved path</p><h1>This page is not in the graph</h1><p>The address does not match a Graphite page.</p><div><a class="ink-button" href="/" data-route>Return home</a><a class="paper-button" href="/?demo=1" data-route>Try sample data</a></div></main>`);
+  app.innerHTML = chrome(`<main id="main" class="not-found"><div class="not-found-mark" aria-hidden="true">404</div><p class="eyebrow">Page error</p><h1>Page not found</h1><p>The address does not match a Graphite page.</p><div><a class="ink-button" href="/" data-route>Return home</a><a class="paper-button" href="/?demo=1" data-route>Try sample data</a></div></main>`);
   bindCommon(); finishRoute();
 }
 

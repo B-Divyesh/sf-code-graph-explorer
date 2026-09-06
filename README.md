@@ -15,8 +15,8 @@ the folder intake.
 - Search functions and files, then open a two-level code graph, relationship
   list, or source reference.
 - Import or export a Graphite index as JSON.
-- A $24 one-time Team license exports a standalone HTML review packet for one
-  focused symbol and its visible relationships.
+- A $24 one-time Team license for one user exports a standalone HTML review
+  packet for one focused symbol and its visible relationships.
 - Press `/` to search. Use arrow keys to move between graph nodes and pane tabs.
 - The demo opens offline after the first online visit.
 
@@ -34,13 +34,14 @@ codebase.
 
 ## Privacy and access
 
-Selected source and the active index stay in browser memory. The free workflow
-uses no account, analytics, hosted source index, external fonts, or third-party
-scripts. The app files are cached for offline use, but opened source is not.
-Local exploration and Graphite index export are free. No paid purchase is
-required for these tools. Team costs $24 once for one user. It adds standalone
-local HTML review-packet export. Sociobot handles checkout, with Dodo as the
-merchant of record.
+Selected source, the active index, and search terms stay in browser memory. The
+free workflow uses no account, analytics, hosted source index, external fonts,
+or third-party scripts. The app shell is cached for offline use, but opened
+source is not retained. Local exploration and Graphite index export are free.
+No paid purchase is required for these tools. Team costs $24 once for one user.
+It adds standalone local HTML review-packet export. Sociobot handles checkout,
+with Dodo as the merchant of record and refund handler. A revoked Team license
+disables review-packet export.
 
 See [Privacy](https://code-graph-explorer.sociobot.in/privacy) and
 [Terms](https://code-graph-explorer.sociobot.in/terms).

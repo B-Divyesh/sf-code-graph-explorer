@@ -7,6 +7,7 @@ for (const entry of [
   { name: 'privacy', path: '/privacy', viewport: { width: 390, height: 844 } },
   { name: 'terms', path: '/terms', viewport: { width: 390, height: 844 } },
   { name: 'not found', path: '/missing-page', viewport: { width: 390, height: 844 } },
+  { name: 'static 404', path: '/404.html', viewport: { width: 390, height: 844 } },
 ]) test(`accessibility: ${entry.name}`, async ({ page }) => {
   await page.setViewportSize(entry.viewport);
   await page.goto(entry.path);
@@ -42,7 +43,7 @@ test('Team dialog is labelled, axe-clean, and returns focus to its opener', asyn
   await page.goto('/');
   const opener = page.getByRole('button', { name: 'View Team export' }).first();
   await opener.focus(); await opener.click();
-  const dialog = page.getByRole('dialog', { name: 'Share the path you traced' });
+  const dialog = page.getByRole('dialog', { name: 'Export a review packet' });
   await expect(dialog).toBeVisible();
   await expect(page.getByRole('button', { name: 'Close Team export dialog' })).toBeFocused();
   const results = await new AxeBuilder({ page }).include('.team-dialog').withTags(['wcag2a', 'wcag2aa']).analyze();

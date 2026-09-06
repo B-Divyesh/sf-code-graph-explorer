@@ -12,6 +12,14 @@ async function chooseFiles(page: Page, files: Array<{ name: string; mimeType: st
   await page.locator('[data-folder-input]').setInputFiles(files);
 }
 
+async function recoverWithFolderInput(page: Page): Promise<void> {
+  await page.locator('[data-folder-input]').evaluate(input => input.removeAttribute('webkitdirectory'));
+  const chooser = page.waitForEvent('filechooser');
+  await page.getByRole('button', { name: 'Try another folder' }).click();
+  await (await chooser).setFiles({ name: 'recovered.ts', mimeType: 'text/plain', buffer: Buffer.from('export function recovered() { return true }') });
+  await expect(page.getByRole('heading', { level: 1, name: 'recovered' })).toBeVisible();
+}
+
 test('@claim:open-codebase opens a codebase into a usable graph', async ({ page }) => {
   await openDemo(page);
   await expect(page.locator('.graph-node')).toHaveCount(4);
@@ -211,6 +219,17 @@ test('@claim:workspace-tools searches symbols and provides a text relationship l
   await expect(page.locator('.relationship-list button').first()).toBeVisible();
 });
 
+test('@claim:search-stays-local keeps real workspace searches in the browser', async ({ page }) => {
+  await chooseFiles(page, [{ name: 'searchable.ts', mimeType: 'text/plain', buffer: Buffer.from('export function privateSearchTarget() { return true }\nexport function other() { return false }') }]);
+  await expect(page.getByRole('heading', { level: 1, name: 'privateSearchTarget' })).toBeVisible();
+  const requests: Array<{ url: string; method: string; body: string | null }> = [];
+  page.on('request', request => requests.push({ url: request.url(), method: request.method(), body: request.postData() }));
+  await page.getByLabel('Search symbols').fill('privateSearchTarget');
+  await expect(page.locator('.symbol-list')).toContainText('privateSearchTarget');
+  await page.waitForTimeout(75);
+  expect(requests).toEqual([]);
+});
+
 test('@claim:keyboard-navigation supports phone search, graph arrows, and pane-tab arrows', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openDemo(page);
@@ -262,6 +281,34 @@ test('@claim:folder-file-limit rejects 5,001 supported files without a partial i
   await expect(page.locator('.project-bar')).toHaveCount(0);
 });
 
+test('@claim:folder-error-recovery retries every intake error through the folder input fallback', async ({ page }) => {
+  await page.addInitScript(() => { Object.defineProperty(window, 'showDirectoryPicker', { configurable: true, value: undefined }); });
+
+  await page.goto('/');
+  await page.locator('[data-json-input]').setInputFiles({ name: 'broken.json', mimeType: 'application/json', buffer: Buffer.from('{not-json') });
+  await expect(page.getByRole('heading', { level: 1, name: 'Index could not be opened' })).toBeVisible();
+  await recoverWithFolderInput(page);
+
+  await page.goto('/');
+  await page.locator('[data-folder-input]').evaluate(input => input.removeAttribute('webkitdirectory'));
+  await page.locator('[data-folder-input]').setInputFiles({ name: 'too-large.ts', mimeType: 'text/plain', buffer: Buffer.alloc(2_000_001, 97) });
+  await expect(page.getByRole('heading', { level: 1, name: 'No supported files found' })).toBeVisible();
+  await recoverWithFolderInput(page);
+
+  await page.goto('/');
+  await page.locator('[data-folder-input]').evaluate((input: HTMLInputElement) => {
+    const transfer = new DataTransfer();
+    for (let i = 0; i < 5001; i++) {
+      const file = new File([''], `${i}.js`, { type: 'text/javascript' });
+      Object.defineProperty(file, 'webkitRelativePath', { value: `too-many/${i}.js` });
+      transfer.items.add(file);
+    }
+    input.files = transfer.files; input.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await expect(page.getByRole('heading', { level: 1, name: 'Folder is too large' })).toBeVisible();
+  await recoverWithFolderInput(page);
+});
+
 test('@claim:no-third-party-runtime keeps the free workflow same-origin', async ({ page }) => {
   const origins = new Set<string>();
   page.on('request', request => origins.add(new URL(request.url()).origin));
@@ -271,12 +318,13 @@ test('@claim:no-third-party-runtime keeps the free workflow same-origin', async 
 });
 
 test('@claim:build-contract emits the Azure static site files', async () => {
-  for (const file of ['dist/index.html', 'dist/sw.js', 'dist/staticwebapp.config.json', 'dist/sitemap.xml', 'dist/robots.txt']) await expect(readFile(file, 'utf8')).resolves.toBeTruthy();
-  const swa = JSON.parse(await readFile('dist/staticwebapp.config.json', 'utf8')) as { navigationFallback: { rewrite: string }; globalHeaders: Record<string, string>; routes: Array<{ route: string; headers: Record<string, string> }> };
+  for (const file of ['dist/index.html', 'dist/404.html', 'dist/sw.js', 'dist/staticwebapp.config.json', 'dist/sitemap.xml', 'dist/robots.txt']) await expect(readFile(file, 'utf8')).resolves.toBeTruthy();
+  const swa = JSON.parse(await readFile('dist/staticwebapp.config.json', 'utf8')) as { navigationFallback: { rewrite: string }; globalHeaders: Record<string, string>; routes: Array<{ route: string; headers: Record<string, string> }>; responseOverrides: { '404': { rewrite: string } } };
   expect(swa.navigationFallback.rewrite).toBe('/index.html');
   expect(swa.globalHeaders).toMatchObject({ 'X-Content-Type-Options': 'nosniff', 'Referrer-Policy': 'strict-origin-when-cross-origin', 'Permissions-Policy': 'camera=(), microphone=(), geolocation=()' });
   expect(swa.globalHeaders['Content-Security-Policy']).toContain("default-src 'self'");
   expect(swa.routes).toContainEqual({ route: '/wasm/*', headers: { 'cache-control': 'public, max-age=604800, must-revalidate' } });
+  expect(swa.responseOverrides['404']).toEqual({ rewrite: '/404.html' });
   expect(await readFile('dist/sitemap.xml', 'utf8')).toContain('/demo');
   expect(await readFile('dist/robots.txt', 'utf8')).toContain('Sitemap:');
 });
@@ -296,18 +344,52 @@ test('@claim:test-contract npm test includes the unit and Playwright suites', as
   await expect(readFile('tests/accessibility.spec.ts', 'utf8')).resolves.toContain('AxeBuilder');
 });
 
-test('@claim:team-purchase exposes the registered $24 one-time checkout', async ({ page, request }) => {
+test('@claim:team-purchase exposes the registered $24 one-time, one-user checkout terms', async ({ page, request }) => {
   await page.goto('/');
+  await expect(page.getByText('One-time Team license for one user.', { exact: true })).toBeVisible();
   await page.getByRole('button', { name: 'View Team export' }).first().click();
   const checkout = page.getByRole('link', { name: /Buy Team at checkout/ });
   await expect(checkout).toHaveAttribute('href', 'https://api.sociobot.in/api/v1/products/code-graph-explorer/checkout');
   await expect(page.getByRole('dialog').getByText('$24', { exact: true })).toBeVisible();
+  await expect(page.getByRole('dialog').getByText(/One-time purchase\s*for one user/)).toBeVisible();
+  await expect(page.getByRole('dialog').getByText(/Dodo is the merchant of record and handles refunds/)).toBeVisible();
   const response = await request.get('https://api.sociobot.in/api/v1/products/code-graph-explorer/checkout');
   expect(response.ok()).toBe(true);
   expect(response.url()).toContain('checkout.dodopayments.com/session/');
   const body = await response.text();
   expect(body).toContain('Graphite Team review packet');
   expect(body).toContain('$24.00');
+});
+
+test('@claim:team-license-privacy stores the license locally and sends only it for verification', async ({ page }) => {
+  const checks: Array<{ url: string; body: string | null }> = [];
+  await page.route('https://api.sociobot.in/api/v1/products/code-graph-explorer/verify**', async route => {
+    checks.push({ url: route.request().url(), body: route.request().postData() });
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: true, reason: 'ok', expires_at: null }) });
+  });
+  await page.goto('/?license=local-license-fixture');
+  await expect(page.getByText('License verified. Team export is active.')).toBeVisible();
+  await page.reload();
+  const storage = await page.evaluate(() => ({ token: localStorage.getItem('sb_license:code-graph-explorer'), verdict: JSON.parse(localStorage.getItem('sb_license_verdict:code-graph-explorer') || 'null') }));
+  expect(storage.token).toBe('local-license-fixture');
+  expect(storage.verdict).toMatchObject({ valid: true, reason: 'ok' });
+  expect(checks).toHaveLength(1);
+  const requestUrl = new URL(checks[0].url);
+  expect(requestUrl.searchParams.get('license')).toBe('local-license-fixture');
+  expect([...requestUrl.searchParams.keys()]).toEqual(['license']);
+  expect(checks[0].body).toBeNull();
+});
+
+test('@claim:revoked-license locks Team export after a revoked verification result', async ({ page }) => {
+  await page.route('https://api.sociobot.in/api/v1/products/code-graph-explorer/verify**', route => route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ valid: false, reason: 'revoked', expires_at: null }) }));
+  await page.goto('/?license=revoked-license-fixture');
+  await expect(page.getByText('License not active (revoked).')).toBeVisible();
+  await page.getByRole('button', { name: 'Close Team export dialog' }).click();
+  await page.locator('[data-folder-input]').evaluate(input => input.removeAttribute('webkitdirectory'));
+  await page.locator('[data-folder-input]').setInputFiles({ name: 'locked.ts', mimeType: 'text/plain', buffer: Buffer.from('export function locked() { return true }') });
+  await expect(page.getByRole('heading', { level: 1, name: 'locked' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'View Team export' }).last()).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Export review packet' })).toHaveCount(0);
 });
 
 test('@claim:review-packet-export verifies a license and exports the focused local review packet', async ({ page }) => {
@@ -340,9 +422,11 @@ test('@claim:route-contract deep links, titles, focus, and not-found state work'
   }
   await page.goto('/definitely-missing');
   await expect(page).toHaveTitle('Page not found — Graphite');
-  await expect(page.getByRole('heading', { level: 1, name: 'This page is not in the graph' })).toBeVisible();
+  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
   await page.getByRole('link', { name: 'Return home' }).click();
   await expect(page.locator('main h1')).toBeFocused();
+  await page.goto('/404.html');
+  await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
 });
 
 test('@claim:mobile-panes shows the selected pane at 390 pixels', async ({ page }) => {
@@ -364,4 +448,25 @@ test('@claim:mobile-targets keeps every visible phone workspace target at least 
     return rect.width + .01 < 44 || rect.height + .01 < 44 ? [{ name: element.getAttribute('aria-label') || element.textContent?.trim() || element.tagName, width: rect.width, height: rect.height }] : [];
   }));
   expect(undersized).toEqual([]);
+});
+
+test('@claim:real-workspace-offline reloads the app shell without retaining opened source', async ({ browser }) => {
+  const isolatedContext = await browser.newContext();
+  const isolatedPage = await isolatedContext.newPage();
+  try {
+    await isolatedPage.goto('/');
+    await isolatedPage.locator('[data-folder-input]').evaluate(input => input.removeAttribute('webkitdirectory'));
+    await isolatedPage.locator('[data-folder-input]').setInputFiles({ name: 'offline-private.ts', mimeType: 'text/plain', buffer: Buffer.from("export function offlinePrivate() { return 'OFFLINE_PRIVATE_MARKER' }") });
+    await expect(isolatedPage.getByRole('heading', { level: 1, name: 'offlinePrivate' })).toBeVisible();
+    await expect(isolatedPage.getByText('App shell is available offline after this visit. Opened source is not saved.')).toBeVisible();
+    await isolatedPage.waitForFunction(() => Boolean(navigator.serviceWorker?.controller));
+    await isolatedContext.setOffline(true);
+    await isolatedPage.reload({ waitUntil: 'domcontentloaded' });
+    await expect(isolatedPage.getByRole('heading', { level: 1, name: /Trace calls through an unfamiliar codebase/ })).toBeVisible();
+    await expect(isolatedPage.locator('.project-bar')).toHaveCount(0);
+    await expect(isolatedPage.locator('body')).not.toContainText('OFFLINE_PRIVATE_MARKER');
+  } finally {
+    await isolatedContext.setOffline(false);
+    await isolatedContext.close();
+  }
 });

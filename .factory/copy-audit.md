@@ -1,6 +1,6 @@
 # Landing copy audit
 
-Audited 2026-08-28. Counts use whitespace-delimited words. No item exceeds 22
+Audited 2026-09-06. Counts use whitespace-delimited words. No item exceeds 22
 words and no banned marketing word appears.
 
 | Copy | Words |
@@ -15,6 +15,7 @@ words and no banned marketing word appears.
 | The demo opens offline after your first visit. | 8 |
 | Local graphs are free. | 4 |
 | Team review export costs $24 once. | 6 |
+| Code graph example | 3 |
 | A codebase shown as linked functions and imports. | 8 |
 | Open your codebase | 3 |
 | Graphite reads selected files in browser memory. | 7 |
@@ -36,7 +37,7 @@ words and no banned marketing word appears.
 | Dynamic calls can be absent from the graph. | 8 |
 | No analytics, accounts, hosted source index, external fonts, or third-party scripts run in the free workflow. | 16 |
 | Read the privacy details or read the terms. | 8 |
-| Send a review packet, not raw graph data | 8 |
+| Export a review packet | 4 |
 | Export the focused symbol, source location, and visible relationships as one standalone HTML file. | 14 |
 | One-time Team license for one user. | 6 |
 | View Team export | 3 |
@@ -48,7 +49,7 @@ words and no banned marketing word appears.
 
 | Copy | Words |
 | --- | ---: |
-| Share the path you traced | 5 |
+| Export a review packet | 4 |
 | Team adds a standalone HTML packet for the focused symbol, source location, and visible relationships. | 14 |
 | One-time purchase for one user | 5 |
 | Buy Team at checkout | 4 |
@@ -56,6 +57,18 @@ words and no banned marketing word appears.
 | Verify license | 2 |
 | Sociobot handles checkout. | 3 |
 | Dodo is the merchant of record and handles refunds. | 9 |
+
+## Recovery, offline, and not-found copy
+
+| Copy | Words |
+| --- | ---: |
+| Indexing &lt;codebase&gt; | 2 |
+| Could not open codebase | 4 |
+| Try another folder | 3 |
+| App shell is available offline after this visit. | 8 |
+| Opened source is not saved. | 5 |
+| Page not found | 3 |
+| The address does not match a Graphite page. | 9 |
 
 ## Terminology
 
