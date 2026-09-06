@@ -12,4 +12,5 @@
 - Review packet: **Preview** exports a sample-only HTML packet. It never reads
   a saved Team license and does not unlock paid export for real codebases.
 - Offline: after one online visit installs the service worker, the direct demo
-  URL reloads offline and rebuilds the same bundled seed.
+  URL reloads offline and rebuilds the same bundled seed. Browser tests use a
+  production-like host where Azure's deployment configuration returns 404.

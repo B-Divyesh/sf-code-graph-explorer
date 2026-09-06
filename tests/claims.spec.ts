@@ -252,14 +252,22 @@ test('@claim:keyboard-navigation supports phone search, graph arrows, and pane-t
   await expect(nodes.nth(1)).toBeFocused();
 });
 
-test('@claim:offline-reload opens the seeded demo offline after the first visit', async ({ page, context }) => {
-  await openDemo(page);
-  await page.waitForFunction(() => Boolean(navigator.serviceWorker?.controller));
-  await context.setOffline(true);
-  await page.reload({ waitUntil: 'domcontentloaded' });
-  await expect(page.getByRole('heading', { level: 1, name: 'boot' })).toBeVisible();
-  await expect(page.getByText('Demo — sample data, nothing is saved')).toBeVisible();
-  await context.setOffline(false);
+test('@claim:offline-reload opens the seeded demo offline after the first visit', async ({ browser }) => {
+  const isolatedContext = await browser.newContext();
+  const isolatedPage = await isolatedContext.newPage();
+  try {
+    const deploymentConfig = await isolatedContext.request.get('/staticwebapp.config.json');
+    expect(deploymentConfig.status()).toBe(404);
+    await openDemo(isolatedPage);
+    await isolatedPage.waitForFunction(() => Boolean(navigator.serviceWorker?.controller));
+    await isolatedContext.setOffline(true);
+    await isolatedPage.reload({ waitUntil: 'domcontentloaded' });
+    await expect(isolatedPage.getByRole('heading', { level: 1, name: 'boot' })).toBeVisible();
+    await expect(isolatedPage.getByText('Demo — sample data, nothing is saved')).toBeVisible();
+  } finally {
+    await isolatedContext.setOffline(false);
+    await isolatedContext.close();
+  }
 });
 
 test('@claim:file-size-limit ignores source files over 2 MB', async ({ page }) => {
@@ -424,7 +432,11 @@ test('@claim:route-contract deep links, titles, focus, and not-found state work'
   await expect(page).toHaveTitle('Page not found — Graphite');
   await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
   await page.getByRole('link', { name: 'Return home' }).click();
-  await expect(page.locator('main h1')).toBeFocused();
+  await expect(page.getByRole('heading', { level: 1, name: /Trace calls through an unfamiliar codebase/ })).toBeVisible();
+  await page.getByRole('link', { name: 'Privacy' }).first().click();
+  await expect(page.getByRole('heading', { level: 1, name: 'How Graphite handles your data' })).toBeFocused();
+  await page.goBack();
+  await expect(page.getByRole('heading', { level: 1, name: /Trace calls through an unfamiliar codebase/ })).toBeFocused();
   await page.goto('/404.html');
   await expect(page.getByRole('heading', { level: 1, name: 'Page not found' })).toBeVisible();
 });

@@ -1,6 +1,6 @@
 {
   "name": "code-graph-explorer",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +9,7 @@
     "prebuild": "node scripts/copy-wasm.mjs",
     "build": "tsc --noEmit && vite build && node scripts/build-sw.mjs",
     "preview": "vite preview",
+    "serve:test": "node scripts/serve-production.mjs",
     "test": "npm run test:unit && npm run test:browser",
     "test:unit": "vitest run src",
     "test:browser": "npm run build && playwright test",

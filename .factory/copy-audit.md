@@ -5,7 +5,7 @@ words and no banned marketing word appears.
 
 | Copy | Words |
 | --- | ---: |
-| Local code graph / v1.2.0 | 5 |
+| Local code graph / v1.2.1 | 5 |
 | Trace calls through an unfamiliar codebase. | 6 |
 | For engineers onboarding, debugging, or refactoring, see calls, imports, and source in one local workspace. | 15 |
 | Try it with sample data | 5 |

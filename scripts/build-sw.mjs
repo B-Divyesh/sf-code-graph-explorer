@@ -4,6 +4,7 @@ import { relative, sep } from 'node:path';
 
 const dist = new URL('../dist/', import.meta.url);
 const swUrl = new URL('sw.js', dist);
+const deploymentOnlyFiles = new Set(['/staticwebapp.config.json']);
 
 async function filesIn(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
@@ -14,7 +15,11 @@ async function filesIn(directory) {
   return nested.flat();
 }
 
-const fileUrls = (await filesIn(dist)).filter(file => file.href !== swUrl.href);
+const fileUrls = (await filesIn(dist)).filter(file => {
+  if (file.href === swUrl.href) return false;
+  const path = `/${relative(dist.pathname, file.pathname).split(sep).join('/')}`;
+  return !deploymentOnlyFiles.has(path);
+});
 const precache = await Promise.all(fileUrls.map(async file => {
   const contents = await readFile(file);
   return { path: `/${relative(dist.pathname, file.pathname).split(sep).join('/')}`, contents };

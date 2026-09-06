@@ -90,4 +90,5 @@ same original source. They were produced locally with ImageMagick on
 The un-hashed Tree-sitter grammar files are served with a one-week,
 must-revalidate cache policy. The release-versioned service worker precaches
 them for offline use; revalidation prevents a grammar update from becoming
-permanently stale.
+permanently stale. Deployment-only files are excluded because Azure consumes
+them instead of publishing them at the product origin.
